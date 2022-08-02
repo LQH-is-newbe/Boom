@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
+using System;
 
 public class GameStarter : MonoBehaviour {
-    public GameObject mapPrefab;
     public GameObject uiPrefab;
-    private void Start() {
+    public GameObject characterPrefab;
+    public GameObject characterAvatarHealthPrefab;
+
+    private void Awake() {
         if (!NetworkManager.Singleton.IsServer) return;
 
         ResetGameState();
@@ -16,22 +19,44 @@ public class GameStarter : MonoBehaviour {
     }
 
     private void ResetGameState() {
-        Static.livingPlayers.Clear();
-        foreach (ulong clientId in NetworkManager.Singleton.ConnectedClientsIds) {
-            Static.livingPlayers.Add(clientId);
+        Player.livingPlayers.Clear();
+        foreach (Player player in Player.players.Values) {
+            Player.livingPlayers.Add(player);
         }
+        Static.map.Clear();
     }
 
     private void InitObjects() {
+        GameObject mapPrefab = Resources.Load<GameObject>("Maps/Map_" + Static.maps[Static.mapIndex]);
         GameObject map = Instantiate(mapPrefab, Vector2.zero, Quaternion.identity);
         map.GetComponent<NetworkObject>().Spawn(true);
-        map.GetComponent<MapLoader>().LoadMap();
 
         GameObject ui = Instantiate(uiPrefab);
         ui.GetComponent<NetworkObject>().Spawn(true);
 
-        for (int clientIndex = 0; clientIndex < NetworkManager.Singleton.ConnectedClientsIds.Count; ++clientIndex) {
-            Util.AddClientObjects(clientIndex, NetworkManager.Singleton.ConnectedClientsIds[clientIndex]);
+        int index = 0;
+        foreach (Player player in Player.players.Values) {
+            AddPlayerObjects(index, player);
+            ++index;
+        }
+    }
+
+    private void AddPlayerObjects(int index, Player player) {
+        GameObject characterAvatarHealth = Instantiate(characterAvatarHealthPrefab);
+        CharacterAvatarHealth characterAvatarHealthController = characterAvatarHealth.GetComponent<CharacterAvatarHealth>();
+        characterAvatarHealthController.characterName.Value = new(player.CharacterName);
+        characterAvatarHealthController.playerName.Value = new(player.Name);
+        characterAvatarHealthController.lives.Value = 3;
+        characterAvatarHealthController.playerId.Value = index + 1;
+        if (!player.IsNPC) characterAvatarHealth.GetComponent<NetworkObject>().SpawnWithOwnership(player.ClientId);
+        else characterAvatarHealth.GetComponent<NetworkObject>().Spawn();
+
+        GameObject character = Instantiate(characterPrefab, Player.playerInitialPositions[index], Quaternion.identity);
+        character.GetComponent<Character>().Init(player, characterAvatarHealthController);
+        if (!player.IsNPC) {
+            character.GetComponent<NetworkObject>().SpawnAsPlayerObject(player.ClientId, true);
+        } else {
+            character.GetComponent<NetworkObject>().Spawn(true);
         }
     }
 }

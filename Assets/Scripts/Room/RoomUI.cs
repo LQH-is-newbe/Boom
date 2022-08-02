@@ -6,6 +6,10 @@ using Unity.Netcode;
 using System.Net.Http;
 
 public class RoomUI : NetworkBehaviour {
+    private void Awake() {
+        gameObject.name = "RoomUI";
+    }
+
     [ServerRpc(RequireOwnership = false)]
     public void StartGameServerRpc() {
         //TransitionClientRpc();

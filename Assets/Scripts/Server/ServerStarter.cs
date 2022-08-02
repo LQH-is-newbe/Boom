@@ -11,8 +11,9 @@ using System.Text;
 
 public class ServerStarter : MonoBehaviour {
     private void Start() {
+        Application.targetFrameRate = 60;
+
         NetworkManager.Singleton.ConnectionApprovalCallback = ConnectionApprovalCallback;
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnectedCallback;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectCallback;
 
         Static.httpServerAddress = "host.docker.internal";
@@ -32,20 +33,22 @@ public class ServerStarter : MonoBehaviour {
             return;
         }
         response.Approved = true;
-        var clientId = request.ClientNetworkId;
-        Static.playerNames[clientId] = connectionData.playerName;
-    }
-    private void OnClientConnectedCallback(ulong clientId) {
-        Debug.Log("client joined");
-        Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-join", Static.roomIdJson);
+        Player player = Player.CreatePlayer(false, request.ClientNetworkId, connectionData.playerName);
+        Debug.Log("client joined name " + player.Name);
+        Util.NotifyServerAddPlayer();
+        if (SceneManager.GetActiveScene().name == "Room") {
+            GameObject.Find("RoomUI").GetComponent<CharacterSelection>().AddPlayer(player);
+        }
     }
 
     private void OnClientDisconnectCallback(ulong clientId) {
-        Debug.Log("client left");
-        Static.playerCharacters.Remove(clientId);
-        Static.playerNames.Remove(clientId);
-        Static.livingPlayers.Remove(clientId);
-        Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-leave", Static.roomIdJson);
+        Player player = Player.clientPlayers[clientId];
+        Debug.Log("client left name " + player.Name);
+        player.Remove();
+        Util.NotifyServerRemovePlayer();
+        if (SceneManager.GetActiveScene().name == "Room") {
+            GameObject.Find("RoomUI").GetComponent<CharacterSelection>().RemovePlayer(player);
+        }
     }
 }
 

@@ -3,43 +3,74 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
+using UnityEngine.UI;
 
 public class CharacterSelection : NetworkBehaviour {
     public GameObject characterSelectionUnitPrefab;
-    private Dictionary<string, CharacterSelectionUnit> units = new();
+    private CharacterSelectionUnit selectedCharacter;
+    public GameObject playerDisplayPrefab;
+    private List<GameObject> playerDisplays = new();
 
+    // server call
     public void Init() {
         for (int i = 0; i < Static.characters.Length; i++) {
             GameObject characterSelectionUnit = Instantiate(characterSelectionUnitPrefab);
-            characterSelectionUnit.transform.SetParent(gameObject.transform);
             CharacterSelectionUnit controller = characterSelectionUnit.GetComponent<CharacterSelectionUnit>();
             controller.characterName.Value = new FixedString64Bytes(Static.characters[i]);
-            controller.x.Value = -465 + 360 * i;
             characterSelectionUnit.GetComponent<NetworkObject>().Spawn();
-            units.Add(Static.characters[i], controller);
+            
+        }
+        for (int i = 0; i < 4; i++) {
+            GameObject playerDisplay = Instantiate(playerDisplayPrefab);
+            playerDisplay.GetComponent<RoomPlayerUI>().index.Value = i;
+            playerDisplay.GetComponent<NetworkObject>().Spawn();
+            playerDisplays.Add(playerDisplay);
+            if (Player.players.ContainsKey(i)) {
+                AddPlayer(Player.players[i]);
+            }
         }
     }
 
+    public void AddPlayer(Player player) {
+        RoomPlayerUI playerDisplay = playerDisplays[player.Id].GetComponent<RoomPlayerUI>();
+        if (player.IsNPC) playerDisplay.isBot.Value = true;
+        playerDisplay.playerName.Value = new(player.Name);
+        if (player.CharacterName != null) playerDisplay.characterName.Value = new(player.CharacterName);
+    }
+
+    public void RemovePlayer(Player player) {
+        RoomPlayerUI playerDisplay = playerDisplays[player.Id].GetComponent<RoomPlayerUI>();
+        playerDisplay.isBot.Value = false;
+        playerDisplay.characterName.Value = new("");
+        playerDisplay.playerName.Value = new("");
+    }
+
+    // client call
+    public void SelectCharacter(CharacterSelectionUnit selectedCharacter) {
+        if (this.selectedCharacter != null) {
+            this.selectedCharacter.Selected = false;
+        }
+        this.selectedCharacter = selectedCharacter;
+        selectedCharacter.Selected = true;
+        SelectCharacterServerRpc(NetworkManager.Singleton.LocalClientId, selectedCharacter.characterName.Value.Value);
+    }
+
+    // Server RPC
     [ServerRpc(RequireOwnership = false)]
     public void SelectCharacterServerRpc(ulong clientId, string characterName) {
-        CharacterSelectionUnit unit = units[characterName];
-        if (unit.selected.Value) {
-            if (Static.playerCharacters[clientId] == characterName) {
-                Static.playerCharacters.Remove(clientId);
-                unit.selected.Value = false;
-                unit.playerName.Value = new FixedString64Bytes("");
+        Player player = Player.clientPlayers[clientId];
+        player.CharacterName = characterName;
+        playerDisplays[player.Id].GetComponent<RoomPlayerUI>().characterName.Value = new(characterName);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void AddBotServerRpc() {
+        Player player = Player.CreatePlayer(true);
+        if (player != null) {
+            AddPlayer(player);
+            if (!Static.singlePlayer) {
+                Util.NotifyServerAddPlayer();
             }
-        } else {
-            string previousCharacter = "";
-            if (Static.playerCharacters.TryGetValue(clientId, out previousCharacter)) {
-                CharacterSelectionUnit previousUnit = units[previousCharacter];
-                Static.playerCharacters.Remove(clientId);
-                previousUnit.selected.Value = false;
-                previousUnit.playerName.Value = new FixedString64Bytes("");
-            }
-            Static.playerCharacters[clientId] = characterName;
-            unit.selected.Value = true;
-            unit.playerName.Value =  Static.playerNames[clientId];
         }
     }
 }

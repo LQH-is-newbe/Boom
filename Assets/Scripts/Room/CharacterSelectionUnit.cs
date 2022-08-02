@@ -10,42 +10,36 @@ public class CharacterSelectionUnit : NetworkBehaviour
     , IPointerEnterHandler
     , IPointerExitHandler
     , IPointerClickHandler {
-    public Image background;
     public GameObject avatar;
     private bool grey = true;
     private bool hover = false;
     public NetworkVariable<FixedString64Bytes> characterName = new();
-    public NetworkVariable<float> x = new();
     private CharacterSelection characterSelection;
-    public TMPro.TextMeshProUGUI playerNameDisplay;
-    public NetworkVariable<FixedString64Bytes> playerName = new();
-    public NetworkVariable<bool> selected = new();
+    public TMPro.TextMeshProUGUI characterNameDisplay;
+    private bool selected;
+    public bool Selected { set { selected = value; } }
 
     private void Start() {
         SetGrey();
-        characterSelection = transform.parent.GetComponent<CharacterSelection>();
+        characterSelection = GameObject.Find("RoomUI").GetComponent<CharacterSelection>();
     }
 
     private void Update() {
         bool pre_grey = grey;
-        grey = !hover && !selected.Value;
+        grey = !hover && !selected;
         if (pre_grey != grey) {
             if (grey) SetGrey();
             else SetNormal();
         }
-        playerNameDisplay.text = playerName.Value.Value;
     }
 
     public override void OnNetworkSpawn() {
-        RectTransform rectTransform = GetComponent<RectTransform>();
-        rectTransform.anchoredPosition = new Vector2(x.Value, 0);
-        rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
-        rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
-
+        transform.SetParent(GameObject.Find("CharacterSelectionContent").transform, false);
         AnimatorOverrideController animatorOverrideController = new AnimatorOverrideController(avatar.GetComponent<Animator>().runtimeAnimatorController);
         animatorOverrideController["UI_idle"] = Resources.Load<AnimationClip>("Characters/" + characterName.Value.Value + "/Animations/UI_idle");
         animatorOverrideController["UI_static"] = Resources.Load<AnimationClip>("Characters/" + characterName.Value.Value + "/Animations/UI_static");
         avatar.GetComponent<Animator>().runtimeAnimatorController = animatorOverrideController;
+        characterNameDisplay.text = characterName.Value.Value;
     }
 
     public void OnPointerEnter(PointerEventData eventData) {
@@ -57,20 +51,20 @@ public class CharacterSelectionUnit : NetworkBehaviour
     }
 
     public void OnPointerClick(PointerEventData eventData) {
-        characterSelection.SelectCharacterServerRpc(NetworkManager.Singleton.LocalClientId, characterName.Value.Value);
+        characterSelection.SelectCharacter(this);
     }
 
     private void SetGrey() {
         Color32 grey = new Color32(140, 140, 140, 255);
-        background.color = grey;
+        GetComponent<Image>().color = grey;
         avatar.GetComponent<Image>().color = grey;
-        avatar.GetComponent<Animator>().SetBool("Moving", false);
+        avatar.GetComponent<Animator>().SetBool("Active", false);
     }
 
     private void SetNormal() {
         Color32 white = new Color32(255, 255, 255, 255);
-        background.color = white;
+        GetComponent<Image>().color = white;
         avatar.GetComponent<Image>().color = white;
-        avatar.GetComponent<Animator>().SetBool("Moving", true);
+        avatar.GetComponent<Animator>().SetBool("Active", true);
     }
 }

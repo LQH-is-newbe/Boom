@@ -25,9 +25,9 @@ public class Collectable : NetworkBehaviour {
 
     public class Creater {
         private static Type[] types = {
-            new Type("Speed", 0.8f, collecter => collecter.ChangeSpeedClientRpc(0.6f)),
-            new Type("BombPower", 1.0f, collecter => collecter.ChangeBombPower(1)),
-            new Type("BombCapacity", 1.0f, collecter => collecter.ChangeBombCapacity(1)),
+            new Type("Speed", 0.8f, collecter => collecter.Speed += 0.6f),
+            new Type("BombPower", 1.0f, collecter => collecter.BombPower++),
+            new Type("BombCapacity", 1.0f, collecter => collecter.BombCapacity++),
             new Type("Health", 0.36f, collecter => collecter.ChangeHealth(1))
         };
         private static float probSum;
@@ -61,25 +61,33 @@ public class Collectable : NetworkBehaviour {
     public SpriteRenderer spriteRenderer;
     private Type type;
     public NetworkVariable<FixedString64Bytes> spritePath = new();
+    private Vector2Int mapPos;
+    public Vector2Int MapPos { get { return mapPos; } }
 
     private void OnTriggerEnter2D(Collider2D other) {
-        if (!NetworkManager.Singleton.IsServer) return;
+        if (!IsServer) return;
         if (other.GetComponent<Character>() != null) {
             type.Apply(other.GetComponent<Character>());
-            Destroy(gameObject);
+            Destroy();
         }
     }
 
     public override void OnNetworkSpawn() {
+        gameObject.tag = "Collectable";
         spriteRenderer.sprite = Resources.Load<Sprite>(spritePath.Value.Value);
     }
 
     public void Init(Type type) {
         this.type = type;
-        spritePath.Value = new FixedString64Bytes("Objects/Collectable/Sprites/" + type.Name);
+        spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
+        mapPos = new((int)transform.position.x, (int)transform.position.y);
+        Static.map.Set(mapPos, gameObject);
+        Static.collectables.Add(this);
     }
 
     public void Destroy() {
+        Static.map.Set(mapPos, null);
+        Static.collectables.Remove(this);
         Destroy(gameObject);
     }
 }

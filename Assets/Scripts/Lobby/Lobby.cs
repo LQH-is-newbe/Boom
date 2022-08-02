@@ -8,6 +8,7 @@ using TMPro;
 using Newtonsoft.Json;
 using System.Net.Http;
 using System.Text;
+using System;
 
 public class Lobby : MonoBehaviour {
     public TMP_InputField roomMessage;
@@ -16,7 +17,7 @@ public class Lobby : MonoBehaviour {
     public GameObject createRoomWindow;
     private bool creatingRoom = false;
 
-    private void Start() {
+    private void Awake() {
         Static.httpServerAddress = Static.serverPublicAddress;
         if (Debug.isDebugBuild) Static.httpServerAddress = "127.0.0.1";
         GetRooms();
@@ -31,7 +32,7 @@ public class Lobby : MonoBehaviour {
         foreach (var room in returnBody) {
             GameObject lobbyRoom = Instantiate(lobbyRoomPrefab);
             lobbyRoom.GetComponent<LobbyRoom>().Init(room);
-            lobbyRoom.transform.SetParent(lobbyRooms.transform);
+            lobbyRoom.transform.SetParent(lobbyRooms.transform, false);
         }
     }
 

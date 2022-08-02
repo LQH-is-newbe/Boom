@@ -4,12 +4,15 @@
 TagManager:
   serializedVersion: 2
   tags:
-  - Map
+  - Bomb
+  - Destroyable
+  - NoneDestroyable
+  - Character
+  - Collectable
   - CharacterAvatarHealth
-  - UI
-  - GameStateController
+  - Map
   - GameMessage
-  - Transition
+  - Explode
   layers:
   - Default
   - TransparentFX

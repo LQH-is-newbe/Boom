@@ -7,20 +7,30 @@ using UnityEngine.UI;
 
 public class CharacterAvatarHealth : NetworkBehaviour {
     public NetworkVariable<FixedString64Bytes> characterName = new();
-    public NetworkVariable<float> y = new();
+    public NetworkVariable<FixedString64Bytes> playerName = new();
+    public NetworkVariable<int> playerId = new();
+    public NetworkVariable<int> lives = new();
     public Image avatar;
-    public TMPro.TextMeshProUGUI healthDisplay;
+    public List<GameObject> hearts;
+    public TMPro.TextMeshProUGUI playerNameText;
+    public TMPro.TextMeshProUGUI playerIdText;
 
     public override void OnNetworkSpawn() {
-        RectTransform rectTransform = GetComponent<RectTransform>();
-        rectTransform.anchoredPosition = new Vector2(-230f, y.Value);
-        rectTransform.anchorMin = new Vector2(1, 1);
-        rectTransform.anchorMax = new Vector2(1, 1);
+        lives.OnValueChanged += OnLivesChanged;
+        transform.SetParent(GameObject.Find("CharactersAvatarHealthContent").transform, false);
         avatar.sprite = Resources.Load<Sprite>("Characters/" + characterName.Value.Value + "/Sprites/Idle1");
+        playerNameText.text = playerName.Value.Value;
+        playerIdText.text = playerId.Value + "P";
+        OnLivesChanged(0, lives.Value);
     }
 
-    [ClientRpc]
-    public void HealthChangeClientRpc(string healthText) {
-        healthDisplay.text = healthText;
+    private void OnLivesChanged(int previous, int current) {
+        int i = 0;
+        for (; i < current; ++i) {
+            hearts[i].SetActive(true);
+        }
+        for (; i < 3; ++i) {
+            hearts[i].SetActive(false);
+        }
     }
 }

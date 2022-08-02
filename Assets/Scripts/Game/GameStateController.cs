@@ -9,10 +9,10 @@ public class GameStateController : MonoBehaviour {
     private float messageShowTimer = 0;
 
     public void TestPlayerWins() {
-        if (Static.livingPlayers.Count == 1) {
-            ShowMessage(Static.playerNames[Static.livingPlayers[0]] + " Wins!");
+        if (Player.livingPlayers.Count == 1) {
+            ShowMessage(Player.livingPlayers[0].Name + " Wins!");
             messageShowTimer = messageShowTime;
-        } else if (Static.livingPlayers.Count == 0) {
+        } else if (Player.livingPlayers.Count == 0) {
             ShowMessage("Game Over");
             messageShowTimer = messageShowTime;
         }
@@ -31,7 +31,7 @@ public class GameStateController : MonoBehaviour {
     }
 
     private void ShowMessage(string message) {
-        GameMessage gameMessage = GameObject.FindGameObjectWithTag("UI").GetComponent<GameMessage>();
+        GameMessage gameMessage = GameObject.Find("GameUI").GetComponent<GameMessage>();
         gameMessage.ShowMessageClientRpc(message);
     }
 }

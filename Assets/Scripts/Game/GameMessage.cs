@@ -12,14 +12,12 @@ public class GameMessage : NetworkBehaviour {
 
     [ClientRpc]
     public void ShowMessageClientRpc(string message) {
-        Debug.Log("show message client rpc");
         this.message.text = message;
         showing = true;
     }
 
     private void Update() {
         if (!showing) return;
-        Debug.Log(hasChangedTime);
         hasChangedTime += Time.deltaTime;
         color.a = (byte)Mathf.Clamp(hasChangedTime / changeTime * 255, 0, 255);
         if (color.a == 255) showing = false;

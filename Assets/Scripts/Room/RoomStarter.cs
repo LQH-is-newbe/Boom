@@ -16,11 +16,17 @@ public class RoomStarter : MonoBehaviour {
     }
 
     private void ResetRoomState() {
-        Static.playerCharacters.Clear();
+        foreach (Player player in Player.players.Values) {
+            if (!player.IsNPC) player.CharacterName = null;
+        }
     }
 
     private void InitObjects() {
         GameObject ui = Instantiate(uiPrefab);
+        MapSelection mapSelection = ui.GetComponent<MapSelection>();
+        mapSelection.mapName.Value = new(Static.maps[0]);
+        mapSelection.hasPrevious.Value = false;
+        mapSelection.hasNext.Value = Static.maps.Length > 1;
         ui.GetComponent<NetworkObject>().Spawn(true);
         ui.GetComponent<CharacterSelection>().Init();
     }
