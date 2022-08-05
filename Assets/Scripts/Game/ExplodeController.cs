@@ -24,7 +24,7 @@ public class ExplodeController : NetworkBehaviour {
             createNext = false;
         }
         if (timer < 0) {
-            Static.map.Set(explode.MapPos, null);
+            Static.map[explode.MapPos] = null;
             Destroy(gameObject);
         }
     }
@@ -66,22 +66,30 @@ public class ExplodeController : NetworkBehaviour {
 
     public void Init(int powerLeft, Direction direction) {
         Vector2Int mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map.Set(mapPos, gameObject);
+        Static.map[mapPos] = gameObject;
         explode = new Explode(mapPos, powerLeft, direction);
     }
 
     private void OnExplodeCreate(Vector2Int pos, int powerLeft, Direction direction) {
-        GameObject next = Static.map.Get(pos);
+        GameObject next = Static.map[pos];
+
         if (next == null) {
-            GameObject explode = Instantiate(explodePrefab, new Vector2(pos.x, pos.y), Quaternion.identity);
-            explode.GetComponent<ExplodeController>().Init(powerLeft, direction);
-            explode.GetComponent<NetworkObject>().Spawn(true);
+            NewExplode();
         } else {
             if (next.CompareTag("Destroyable")) {
                 next.GetComponent<Destroyable>().DestroyBlock();
             } else if (next.CompareTag("Bomb")) {
                 next.GetComponent<BombController>().Explode();
+            } else if (next.CompareTag("NoneDestroyable")){
+            } else {
+                NewExplode();
             }
+        }
+
+        void NewExplode() {
+            GameObject explode = Instantiate(explodePrefab, new Vector2(pos.x, pos.y), Quaternion.identity);
+            explode.GetComponent<ExplodeController>().Init(powerLeft, direction);
+            explode.GetComponent<NetworkObject>().Spawn(true);
         }
     }
 }

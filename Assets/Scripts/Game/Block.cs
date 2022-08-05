@@ -18,7 +18,7 @@ public class Block : MonoBehaviour {
             int y = (int)transform.position.y;
             for (int dx = 0; dx < xLen; ++dx) {
                 for (int dy = 0; dy < yLen; ++dy) {
-                    Static.map.Set(new(x + dx, y + dy), gameObject);
+                    Static.map[new(x + dx, y + dy)] = gameObject;
                 }
             }
         }

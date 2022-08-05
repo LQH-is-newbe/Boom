@@ -6,8 +6,8 @@ using Unity.Collections;
 
 public class Character : NetworkBehaviour {
     public const float initialSpeed = 4;
-    public const int initialBombPower = 2;
-    public const int initialBombCapacity = 1;
+    public const int initialBombPower = 4;
+    public const int initialBombCapacity = 4;
     public const int maxHealth = 3;
     public const float timeInvincible = 1;
 
@@ -121,7 +121,7 @@ public class Character : NetworkBehaviour {
         int x = (int)Mathf.Floor(transform.position.x);
         int y = (int)Mathf.Floor(transform.position.y);
         Vector2Int pos = new(x, y);
-        if (Static.map.Get(pos) == null) {
+        if (Static.map[pos] == null) {
             GameObject bomb = Instantiate(bombPrefab, new Vector2(x, y), Quaternion.identity);
             BombController bombController = bomb.GetComponent<BombController>();
             bombController.Init(this, BombPower);

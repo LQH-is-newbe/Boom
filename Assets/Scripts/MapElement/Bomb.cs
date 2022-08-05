@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Bomb {
-    public static float explodeTime = 2f;
+    public const float explodeTime = 2f;
     private Vector2Int mapPos;
     private int bombPower;
     public Vector2Int MapPos { get { return mapPos; } }

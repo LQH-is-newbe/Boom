@@ -81,12 +81,12 @@ public class Collectable : NetworkBehaviour {
         this.type = type;
         spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
         mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map.Set(mapPos, gameObject);
+        Static.map[mapPos] = gameObject;
         Static.collectables.Add(this);
     }
 
     public void Destroy() {
-        Static.map.Set(mapPos, null);
+        Static.map[mapPos] = null;
         Static.collectables.Remove(this);
         Destroy(gameObject);
     }

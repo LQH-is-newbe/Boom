@@ -18,7 +18,7 @@ public class Destroyable : NetworkBehaviour {
         Static.destroyables.Remove(this);
         Destroy(gameObject);
         BlockDestroyClientRpc();
-        Static.map.Set(mapBlock, null);
+        Static.map[mapBlock] = null;
         Vector2 position = transform.position;
         GameObject collectablePrefab = Resources.Load<GameObject>("Collectable/Collectable");
         Collectable.Creater.AttempCreateCollectable(collectablePrefab, position);

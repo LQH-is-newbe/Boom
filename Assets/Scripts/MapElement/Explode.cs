@@ -5,7 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 public class Explode {
-    public static float explodeInterval = 0.05f;
+    public static float explodeInterval = 0.06f;
     public static float explodeEndExistTime = 0.3f;
     private Vector2Int mapPos;
     private float existTime;
@@ -36,7 +36,7 @@ public class Explode {
     }
 
     private void CreateNextExplode(Direction direction, Action<Vector2Int, int, Direction> onExplodeCreate) {
-        Vector2Int newPos = mapPos + Static.directions[(int)direction];
+        Vector2Int newPos = mapPos + Vector2Int.directions[(int)direction];
         if (newPos.x < 0 || newPos.x >= Static.mapSize || newPos.y < 0 || newPos.y >= Static.mapSize) return;
         onExplodeCreate(newPos, powerLeft - 1, direction);
     }

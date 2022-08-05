@@ -11,6 +11,7 @@ public class BotController : MonoBehaviour {
     public List<Instruction> currentInstructions = new();
     private Instruction currentInstruction;
     public List<Instruction> nextInstructions;
+    public List<AIMapEvent> nextEvents;
     private Vector2Int pos;
 
     private void Awake() {
@@ -35,7 +36,7 @@ public class BotController : MonoBehaviour {
         if (instruction.waitTime == -1 && !instruction.putBomb) {
             Vector2Int curMapBlock = AI.PosToMapBlock(pos);
             Vector2Int nextMapBlock = AI.PosToMapBlock(instruction.pos);
-            GameObject go = Static.map.Get(nextMapBlock);
+            GameObject go = Static.map[nextMapBlock];
             if (go != null && go.CompareTag("Bomb") && !curMapBlock.Equals(nextMapBlock)) {
                 return false;
             }
@@ -50,7 +51,8 @@ public class BotController : MonoBehaviour {
                     currentInstructions = nextInstructions;
                     nextInstructions = null;
                     Instruction finalInstruction = currentInstructions[currentInstructions.Count - 1];
-                    ai.Decide(finalInstruction.pos, finalInstruction.time - time, AIMap.Generate(character.Id));
+                    ai.Decide(finalInstruction.pos, new(finalInstruction.time - time, nextEvents));
+                    nextEvents = null;
                 } else {
                     ai.Redecide(pos, time);
                 }
@@ -60,6 +62,7 @@ public class BotController : MonoBehaviour {
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);
+            Debug.Log(currentInstruction);
         }
         float timeLeft = 0;
         if (currentInstruction.waitTime > 0) {

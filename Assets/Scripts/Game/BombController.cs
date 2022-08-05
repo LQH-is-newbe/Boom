@@ -40,12 +40,12 @@ public class BombController : NetworkBehaviour {
     public void Init(Character creater, int bombPower) {
         this.creater = creater;
         Vector2Int mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map.Set(mapPos, gameObject);
+        Static.map[mapPos] = gameObject;
         bomb = new(mapPos, bombPower);
     }
 
     public void Explode() {
-        Static.map.Set(bomb.MapPos, null);
+        Static.map[bomb.MapPos] = null;
         Destroy(gameObject);
         creater.BombNum--;
         GameObject explode = Instantiate(explodePrefab, transform.position, Quaternion.identity);

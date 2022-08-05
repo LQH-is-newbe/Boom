@@ -4,6 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public struct Vector2Int {
+    public static readonly Vector2Int left = new(-1, 0);
+    public static readonly Vector2Int right = new(1, 0);
+    public static readonly Vector2Int up = new(0, 1);
+    public static readonly Vector2Int down = new(0, -1);
+    public static readonly Vector2Int none = new(0, 0);
+    public static readonly Vector2Int[] directions = { left, right, up, down, none };
+
     public int x { get; set; }
     public int y { get; set; }
     public Vector2Int(int x, int y) {
@@ -39,4 +46,12 @@ public struct Vector2Int {
     public override string ToString() {
         return "(" + x + "," + y + ")";
     }
+}
+
+public enum Direction {
+    Left = 0,
+    Right = 1,
+    Up = 2,
+    Down = 3,
+    None = 4
 }

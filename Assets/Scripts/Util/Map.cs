@@ -6,18 +6,15 @@ using UnityEngine;
 public class Map<T> {
     private int size;
     private T[,] map;
-    
+
     public Map(int size) {
         this.size = size;
         map = new T[size, size];
     }
 
-    public void Set(Vector2Int pos, T value) {
-        map[pos.x, pos.y] = value;
-    }
-
-    public T Get(Vector2Int pos) {
-        return map[pos.x, pos.y];
+    public T this[Vector2Int pos] {
+        get { return map[pos.x, pos.y]; }
+        set { map[pos.x, pos.y] = value; }
     }
 
     public void Clear() {
@@ -28,7 +25,7 @@ public class Map<T> {
         string result = "";
         for (int y = size - 1; y >= 0; --y) {
             for (int x = 0; x < size; ++x) {
-                result += new Vector2Int(x, y) + ":" + (Get(new(x, y)) == null ? "null" : Get(new(x, y))) + " ";
+                result += new Vector2Int(x, y) + ":" + (map[x, y] == null ? "null" : map[x, y]) + " ";
             }
             result += Environment.NewLine;
         }
