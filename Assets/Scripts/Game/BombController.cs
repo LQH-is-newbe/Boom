@@ -41,11 +41,11 @@ public class BombController : NetworkBehaviour {
         this.creater = creater;
         Vector2Int mapPos = new((int)transform.position.x, (int)transform.position.y);
         Static.map[mapPos] = gameObject;
-        bomb = new(mapPos, bombPower);
+        bomb = new(mapPos, bombPower, creater.Id);
     }
 
     public void Explode() {
-        Static.map[bomb.MapPos] = null;
+        Static.map[bomb.MapBlock] = null;
         Destroy(gameObject);
         creater.BombNum--;
         GameObject explode = Instantiate(explodePrefab, transform.position, Quaternion.identity);

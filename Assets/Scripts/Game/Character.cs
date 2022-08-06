@@ -7,7 +7,7 @@ using Unity.Collections;
 public class Character : NetworkBehaviour {
     public const float initialSpeed = 4;
     public const int initialBombPower = 4;
-    public const int initialBombCapacity = 4;
+    public const int initialBombCapacity = 100;
     public const int maxHealth = 3;
     public const float timeInvincible = 1;
 

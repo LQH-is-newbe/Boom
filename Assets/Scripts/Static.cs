@@ -6,13 +6,14 @@ public class Static {
     // server
     public static int mapSize = 14;
     public static Map<GameObject> map = new(mapSize);
+    public static Map<MapBlock> mapBlocks = new(mapSize); 
     public static string passcode;
     public static StringContent roomIdJson;
     public static int mapIndex = 0;
     public static float explodeInterval = 0.05f;
     public static float explodeEndExistTime = 0.3f;
     public static List<Collectable> collectables = new();
-    public static List<Destroyable> destroyables = new();
+    public static List<DestroyableController> destroyables = new();
     public static int totalDestroyableNum;
 
 

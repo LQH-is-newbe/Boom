@@ -6,12 +6,10 @@ using UnityEngine;
 
 public class AI {
     private const float preventDis = 0.03f;
-    private const float preventTime = 0.03f;
+    private const float preventTime = 0.05f;
     public const float decideTime = 0.1f;
 
-    private Character character;
-    private int waitingDecisionId = -1;
-    private BotController botController;
+    private int playerId;
 
     public static Vector2Int PosToMapBlock(Vector2Int pos) {
         int x = pos.x >= 0 ? pos.x / 2 : -1;
@@ -37,21 +35,33 @@ public class AI {
         return result;
     }
 
-    public AI(Character character, BotController botController) {
-        this.character = character;
-        this.botController = botController;
+    public AI(int playerId) {
+        this.playerId = playerId;
     }
 
     private string InstructionsToString(List<Instruction> instructions) {
-        string path = "";
+        string result = "";
         for (int i = 0; i < instructions.Count; ++i) {
-            path += instructions[i] + " ";
+            result += instructions[i] + " ";
         }
-        return path;
+        return result;
+    }
+
+    private string EventsToString(List<AIPredictionEvent> events) {
+        string result = "";
+        for (int i = 0; i < events.Count; ++i) {
+            result += events[i] + " ";
+        }
+        return result;
+    }
+
+    public List<Instruction> DummyWaitInstruction(Vector2Int pos) {
+        List<Instruction> instructions = new();
+        instructions.Add(new(pos, decideTime, waitTime: decideTime));
+        return instructions;
     }
 
     private void GetInstructions(SearchNode node, bool putBomb, List<Instruction> currentInstructions) {
-        // TODO: node is null
         List<Instruction> instructions = new();
         SearchNode cur = node;
         if (putBomb) {
@@ -88,29 +98,36 @@ public class AI {
         //Debug.Log(InstructionsToString(result));
     }
 
-    private bool SearchWayOut(Vector2Int source, float initTime, Map<AIMapBlock> aiMap) {
-        if (aiMap[PosToMapBlock(source)].Empty(initTime)) return true;
+    private bool SearchWayOut(Vector2Int source, float initTime, AIPrediction prediction, bool ignoreExplode) {
+        Map<AIPredictionMapBlock> map = prediction.map;
+        if (map[PosToMapBlock(source)].IsSafe(initTime)) return true;
         bool found = false;
         Search(
             source,
             initTime,
-            aiMap,
+            prediction,
+            ignoreExplode,
             out _,
             isQuickSearch: true,
             OnNodePop: (node) => { 
-                if (aiMap[PosToMapBlock(node.pos)].Empty(node.time)) {
+                if (map[PosToMapBlock(node.pos)].IsSafe(node.time)) {
                     found = true;
                     return true;
                 }
                 return false;
             });
+        //if (!found) {
+        //    Debug.Log("no way out");
+        //    Time.timeScale = 0;
+        //}
         return found;
     }
 
     private void Search(
         Vector2Int source,
         float initTime,
-        Map<AIMapBlock> aiMap,
+        AIPrediction prediction,
+        bool ignoreExplode,
         out FastestNodes fastestNodes,
         bool isQuickSearch = false,
         Func<SearchNode, bool> OnNodePop = null, 
@@ -119,13 +136,15 @@ public class AI {
         if (OnNodePop == null) OnNodePop = (_) => { return false; };
         if (Heuristic == null) Heuristic = (_) => { return 0; };
 
-        int initIntervalIndex = aiMap[PosToMapBlock(source)].GetIntervalIndex(initTime);
+        Map<AIPredictionMapBlock> map = prediction.map;
+        AIPredictionCharacter character = prediction.characters[playerId];
+        int initIntervalIndex = map[PosToMapBlock(source)].GetIntervalIndex(initTime);
 
         PriorityQueue<SearchNode, float> pq = new();
         SearchNode init = new(source, initIntervalIndex, null, initTime, 0);
         pq.Add(init, Heuristic(init));
 
-        fastestNodes = isQuickSearch ? new DictionaryFastestNodes(aiMap) : new MapArrayFastestNodes(aiMap);
+        fastestNodes = isQuickSearch ? new DictionaryFastestNodes(map) : new MapArrayFastestNodes(map);
         fastestNodes.Set(source, initIntervalIndex, init);
 
         int nodes = 0;
@@ -136,7 +155,7 @@ public class AI {
             if (OnNodePop(cur)) goto End;
 
             Vector2Int curMapBlock = PosToMapBlock(cur.pos);
-            AIMapBlock curAiMapBlock = aiMap[curMapBlock];
+            AIPredictionMapBlock curAiMapBlock = map[curMapBlock];
 
             for (int i = 0; i < 4; ++i) {
                 Vector2Int nextPos = cur.pos + Vector2Int.directions[i];
@@ -144,11 +163,11 @@ public class AI {
 
                 if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
 
-                AIMapBlock nextAiMapBlock = aiMap[nextMapBlock];
+                AIPredictionMapBlock nextAiMapBlock = map[nextMapBlock];
 
-                if (nextAiMapBlock.isNoneDestroyable) continue;
+                if (nextAiMapBlock.IsNoneDestroyable()) continue;
 
-                float transitionTime = PosMapManhattanDistance(cur.pos, nextPos) / character.Speed;
+                float transitionTime = PosMapManhattanDistance(cur.pos, nextPos) / character.speed;
 
                 // possible enter times, enter each interval as soon as possible (greedy)
                 List<float> timesToEnter = nextAiMapBlock.TimesToEnter(cur.time);
@@ -159,9 +178,8 @@ public class AI {
                     SearchNode fastestNode = fastestNodes.Get(nextPos, intervalIndex);
                     if (fastestNode != null && fastestNode.time <= endTime
                         || nextAiMapBlock.IsDestroyable(startTime)
-                        || nextAiMapBlock.ExplodeOverlap(startTime, endTime) 
-                        || curAiMapBlock.ExplodeOverlap(cur.time, endTime) 
-                        || nextAiMapBlock.IsBomb(startTime) && !nextMapBlock.Equals(curMapBlock)
+                        || !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime))
+                        || nextAiMapBlock.Bomb(startTime) != null && !nextMapBlock.Equals(curMapBlock)
                         ) continue;
                     float waitTime = startTime - cur.time;
                     SearchNode node = new(nextPos, intervalIndex, cur, endTime, waitTime);
@@ -175,101 +193,94 @@ public class AI {
         //if (!isQuickSearch) Debug.Log("Nodes searched: " + nodes);
     }
 
-    public void Redecide(Vector2Int pos, float timeConsumed) {
-        botController.currentInstructions = new();
-        float waitTime = decideTime - timeConsumed;
-        botController.currentInstructions.Add(new(pos, decideTime, waitTime: decideTime));
-        Decide(pos, new(waitTime));
-    }
-
-    public Task Decide(Vector2Int source, AIMapGenerator aiMapGenerator) {
-        //Character character1 = Player.livingPlayers[0].Character;
-        //Vector2Int character1Pos = new((int)Mathf.Floor(character1.Position.x), (int)Mathf.Floor(character1.Position.y));
-        //List<Tuple<Bomb, float>> additionalBombs = new();
-        //additionalBombs.Add(new(new(character1Pos, character1.BombPower), initTime));
-        //Debug.Log(aiMap);
+    public Task<Tuple<int, List<Instruction>, List<AIPredictionEvent>>> Decide(int decisionId, Vector2Int source, AIPredictionGenerator aiMapGenerator) {
         System.Diagnostics.Stopwatch stopwatch = new();
         stopwatch.Start();
 
-        float decisionId = ++waitingDecisionId;
         List<Instruction> instructions = new();
-        List<AIMapEvent> additionalEvents = new();
-        DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
+        List<AIPredictionEvent> additionalEvents = new();
+        DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, false, false);
         Debug.Log("instructions: " + InstructionsToString(instructions));
+        Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
-        //Debug.Log("Decide time:" + stopwatch.ElapsedMilliseconds);
-        if (decisionId != waitingDecisionId) return Task.CompletedTask;
-        botController.nextInstructions = instructions;
-        botController.nextEvents = additionalEvents;
-        return Task.CompletedTask;
+        return Task.FromResult<Tuple<int, List<Instruction>, List<AIPredictionEvent>>>(new(decisionId, instructions, additionalEvents));
     }
 
     private void DecideInstructions(
         Vector2Int source, 
         float initTime, 
-        AIMapGenerator aiMapGenerator, 
+        AIPredictionGenerator aiPredictionGenerator, 
         List<Instruction> instructions,
-        List<AIMapEvent> additionalEvents,
+        List<AIPredictionEvent> additionalEvents,
         bool assumeCharacterPutBomb,
-        bool ignoreExplode) {
+        bool ignoreExplode,
+        int depth = 0) {
 
-        Map<AIMapBlock> aiMap = aiMapGenerator.Generate(character.Id, additionalEvents, assumeCharacterPutBomb);
+        AIPrediction prediction = aiPredictionGenerator.Generate(playerId, additionalEvents, assumeCharacterPutBomb);
+        Map<AIPredictionMapBlock> map = prediction.map;
+        AIPredictionCharacter character = prediction.characters[playerId];
         float destroyableExistRatioThreshold = 0.5f;
         float destroyableExistRatio = Static.destroyables.Count / (float)Static.totalDestroyableNum;
-        //StrategyType strategyType = StrategyType.Collectable;
         bool putBomb = false;
         SearchNode targetNode = null;
-        AIMapEvent newAdditionalEvent = null;
-        SearchTarget[] searchTargets = {
-            new("closestDestroyableNeighbor",
-                (node) => {
-                    Vector2Int curMapBlock = PosToMapBlock(node.pos);
-                    for (int i = 0; i < 4; ++i) {
-                        Vector2Int nextMapBlock = PosToMapBlock(node.pos + Vector2Int.directions[i]);
-                        if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
-                        if (aiMap[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.explodeInterval)) {
-                            List<AIMapEvent> testAdditionalEvents = new(additionalEvents);
-                            AIMapEvent testAdditionalEvent = new(curMapBlock, AIMapEvent.Type.BombCreate, node.time, new Bomb(curMapBlock, character.BombPower));
-                            testAdditionalEvents.Add(testAdditionalEvent);
-                            if (SearchWayOut(node.pos, node.time, aiMapGenerator.Generate(character.Id, testAdditionalEvents, assumeCharacterPutBomb))) {
-                                targetNode = node;
-                                putBomb = true;
-                                newAdditionalEvent = testAdditionalEvent;
-                                return true;
-                            }
-                        }
+        AIPredictionEvent newAdditionalEvent = null;
+        Func<SearchNode, bool> TestPutBomb = (node) => {
+            Vector2Int mapBlock = PosToMapBlock(node.pos);
+            if (character.bombNum.ValueAt(node.time) >= character.bombCapacity || map[mapBlock].Bomb(node.time) != null) return false;
+            List<AIPredictionEvent> testAdditionalEvents = new(additionalEvents);
+            AIPredictionEvent testAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.BombCreate, node.time, new Bomb(mapBlock, character.bombPower, character.id));
+            testAdditionalEvents.Add(testAdditionalEvent);
+            if (SearchWayOut(node.pos, node.time, aiPredictionGenerator.Generate(playerId, testAdditionalEvents, assumeCharacterPutBomb), ignoreExplode)) {
+                targetNode = node;
+                putBomb = true;
+                newAdditionalEvent = testAdditionalEvent;
+                return true;
+            } else {
+                return false;
+            }
+        };
+        SearchTarget closestDestroyableNeighbor = new("closestDestroyableNeighbor",
+            (node) => {
+                Vector2Int curMapBlock = PosToMapBlock(node.pos);
+                for (int i = 0; i < 4; ++i) {
+                    Vector2Int nextMapBlock = PosToMapBlock(node.pos + Vector2Int.directions[i]);
+                    if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
+                    if (map[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.explodeInterval)) {
+                        if (TestPutBomb(node)) return true;
                     }
-                    return false;
-                },
-                (time) => {
-                    return Static.destroyables.Count > 0 && character.BombNum < character.BombCapacity ?
-                        destroyableExistRatio / destroyableExistRatioThreshold  - time : -100;
                 }
-            ),
-            new("closestCollectable",
-                (node) => {
-                    Vector2Int mapBlock = PosToMapBlock(node.pos);
-                    AIMapBlock aIMapBlock = aiMap[mapBlock];
-                    if (aiMap[PosToMapBlock(node.pos)].IsCollectable(node.time) && SearchWayOut(node.pos, node.time, aiMap)) {
-                        targetNode = node;
-                        putBomb = false;
-                        List<AIMapEvent> testAdditionalEvents = new(additionalEvents);
-                        AIMapEvent testAdditionalEvent = new(mapBlock, AIMapEvent.Type.CollectableDestroy, node.time);
-                        testAdditionalEvents.Add(testAdditionalEvent);
-                        newAdditionalEvent = testAdditionalEvent;
-                        return true;
-                    }
-                    return false;
-                },
-                (time) => {
-                    return Static.collectables.Count > 0 ? 6 - time : -100;
+                return false;
+            },
+            (time) => {
+                return Static.destroyables.Count > 0 && character.bombNum.ValueAt(time) < character.bombCapacity ?
+                    destroyableExistRatio / destroyableExistRatioThreshold - time : -100;
+            }
+        );
+        SearchTarget closestCollectable = new("closestCollectable",
+            (node) => {
+                Vector2Int mapBlock = PosToMapBlock(node.pos);
+                AIPredictionMapBlock aIMapBlock = map[mapBlock];
+                if (map[PosToMapBlock(node.pos)].IsCollectable(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
+                    targetNode = node;
+                    putBomb = false;
+                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CollectableDestroy, node.time);
+                    return true;
                 }
-            ),
-            new("closestCharacter",
-                (node) => {
-                    AIMapBlock aIMapBlock = aiMap[PosToMapBlock(node.pos)];
-                    if (aIMapBlock.character != null && aIMapBlock.character.id != character.Id) {
+                return false;
+            },
+            (time) => {
+                return Static.collectables.Count > 0 ? 3 - time : -100;
+            }
+        );
+        SearchTarget closestCharacter = new("closestCharacter",
+            (node) => {
+                Vector2Int mapBlock = PosToMapBlock(node.pos);
+                AIPredictionMapBlock aIMapBlock = map[mapBlock];
+                foreach (int characterId in prediction.characters.Keys) {
+                    if (characterId == playerId) continue;
+                    AIPredictionCharacter otherCharacter = prediction.characters[characterId];
+                    if (PosToMapBlock(otherCharacter.pos).Equals(mapBlock)) {
                         int moveCount = 0;
                         SearchNode cur = node;
                         List<SearchNode> path = new();
@@ -281,33 +292,31 @@ public class AI {
                         while (path.Count > 0) {
                             SearchNode curNode = path[^1];
                             path.RemoveAt(path.Count - 1);
-                            List<AIMapEvent> testAdditionalEvents = new(additionalEvents);
-                            Vector2Int curMapBlock = PosToMapBlock(curNode.pos);
-                            AIMapEvent testAdditionalEvent = new(curMapBlock, AIMapEvent.Type.BombCreate, curNode.time, new Bomb(curMapBlock, character.BombPower));
-                            testAdditionalEvents.Add(testAdditionalEvent);
-                            if (SearchWayOut(curNode.pos, curNode.time, aiMapGenerator.Generate(character.Id, testAdditionalEvents, assumeCharacterPutBomb))) {
-                                targetNode = curNode;
-                                putBomb = true;
-                                newAdditionalEvent = testAdditionalEvent;
+                            if (TestPutBomb(curNode)) {
                                 return true;
+                            } else {
+                                //Debug.Log("put bomb character false");
+                                //Time.timeScale = 0;
                             }
                         }
                     }
-                    return false;
-                },
-                (time) => {
-                    return character.BombNum < character.BombCapacity ? destroyableExistRatio * destroyableExistRatioThreshold - time : -100;
                 }
-            ),
-            new("closestSafe",
-                (node) => {
-                    return aiMap[PosToMapBlock(node.pos)].Empty(node.time);
-                },
-                (time) => {
-                    return -98;
-                }
-            ),
-        };
+                return false;
+            }, 
+            (time) => {
+                //Debug.Log(character.bombNum.ValueAt(time));
+                return character.bombNum.ValueAt(time) < character.bombCapacity ? -50 + destroyableExistRatioThreshold / destroyableExistRatio - time : -100;
+            }
+        );
+        SearchTarget closestSafe = new("closestSafe",
+            (node) => {
+                return map[PosToMapBlock(node.pos)].IsSafe(node.time);
+            },
+            (time) => {
+                return -98;
+            }
+        );
+        SearchTarget[] searchTargets = {closestDestroyableNeighbor, closestCollectable, closestCharacter};
         int searchingTargets = searchTargets.Length;
         float highestScore = -99;
         Func<SearchNode, bool> OnNodePop = (node) => {
@@ -327,22 +336,30 @@ public class AI {
         };
 
         FastestNodes fastestNodes;
-        Search(source, initTime, aiMap, out fastestNodes, OnNodePop: OnNodePop);
+        Search(source, initTime, prediction, ignoreExplode, out fastestNodes, OnNodePop: OnNodePop);
 
         if (targetNode == null) {
             instructions.Add(new(source, decideTime, waitTime: decideTime));
-            //if (additionalBombs != null) {
-            //    DecideInstructions(source, initTime, aiMapGenerator, instructions);
-            //} else if (!ignoreExplode) {
-            //    DecideInstructions(source, initTime, aiMapGenerator, instructions, ignoreExplode: true);
-            //} else {
-            //    instructions.Add(new(source, decideTime, waitTime: decideTime));
-            //}
+            if (assumeCharacterPutBomb) {
+                DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, false, ignoreExplode);
+            } else if (!ignoreExplode) {
+                DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, true);
+            } else {
+                instructions.Add(new(source, decideTime, waitTime: decideTime));
+            }
         } else {
             GetInstructions(targetNode, putBomb, instructions);
-            if (newAdditionalEvent != null) additionalEvents.Add(newAdditionalEvent);
+            float lastInstructionTime = instructions.Count > 0 ? instructions[^1].time : initTime;
+            if (newAdditionalEvent != null && newAdditionalEvent.time <= lastInstructionTime) additionalEvents.Add(newAdditionalEvent);
+            //Debug.Log(InstructionsToString(instructions));
+            //Debug.Log(EventsToString(additionalEvents));
             if (instructions.Count == 0 || instructions[^1].time < decideTime) {
-                DecideInstructions(targetNode.pos, targetNode.time, aiMapGenerator, instructions, additionalEvents, assumeCharacterPutBomb, ignoreExplode);
+                if (depth >= 8) {
+                    Time.timeScale = 0;
+                    Debug.Log("decide instruction too deep");
+                    return;
+                }
+                DecideInstructions(targetNode.pos, targetNode.time, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, ignoreExplode, ++depth);
             }
         }
     }
@@ -396,12 +413,6 @@ public class SearchNode {
     }
 }
 
-public enum StrategyType {
-    Destroyable,
-    Collectable,
-    Character
-}
-
 public struct PosInterval {
     private Vector2Int pos;
     private int intervalIndex;
@@ -434,7 +445,7 @@ public abstract class FastestNodes {
 public class MapArrayFastestNodes : FastestNodes {
     private Map<SearchNode[]> fastestArriveTimes;
 
-    public MapArrayFastestNodes(Map<AIMapBlock> aiMap) {
+    public MapArrayFastestNodes(Map<AIPredictionMapBlock> aiMap) {
         fastestArriveTimes = new(Static.mapSize * 2);
         for (int x = 0; x < Static.mapSize * 2; x++) {
             for (int y = 0; y < Static.mapSize * 2; y++) {
@@ -474,10 +485,10 @@ public class MapArrayFastestNodes : FastestNodes {
 }
 
 public class DictionaryFastestNodes : FastestNodes {
-    private Map<AIMapBlock> aiMap;
+    private Map<AIPredictionMapBlock> aiMap;
     private Dictionary<PosInterval, SearchNode> fastestArriveTimes = new();
 
-    public DictionaryFastestNodes(Map<AIMapBlock> aiMap) {
+    public DictionaryFastestNodes(Map<AIPredictionMapBlock> aiMap) {
         this.aiMap = aiMap;
     }
 

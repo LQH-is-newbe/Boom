@@ -24,6 +24,12 @@ public class GameStarter : MonoBehaviour {
             Player.livingPlayers.Add(player);
         }
         Static.map.Clear();
+        Static.mapBlocks.Clear();
+        for (int x = 0; x < Static.mapSize; ++x) {
+            for (int y = 0; y < Static.mapSize; ++y) {
+                Static.mapBlocks[new(x, y)] = new();
+            }
+        }
     }
 
     private void InitObjects() {

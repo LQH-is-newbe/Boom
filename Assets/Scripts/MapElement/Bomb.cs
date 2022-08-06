@@ -3,15 +3,15 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Bomb {
+public class Bomb: MapElement {
     public const float explodeTime = 2f;
-    private Vector2Int mapPos;
     private int bombPower;
-    public Vector2Int MapPos { get { return mapPos; } }
+    private int createrId;
     public int BombPower { get { return bombPower; } }
+    public int CreaterId { get { return createrId; } }
 
-    public Bomb(Vector2Int mapPos, int bombPower) {
-        this.mapPos = mapPos;
+    public Bomb(Vector2Int mapPos, int bombPower, int createrId): base(mapPos) {
         this.bombPower = bombPower;
+        this.createrId = createrId;
     }
 }

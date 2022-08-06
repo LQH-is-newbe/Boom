@@ -8,7 +8,7 @@ public class Player {
     public static List<Player> livingPlayers = new();
     public static Vector2[] playerInitialPositions = { 
         AI.PosToMapPos(new Vector2Int(13, 23)),
-        AI.PosToMapPos(new Vector2Int(13, 26)),
+        AI.PosToMapPos(new Vector2Int(13, 19)),
         AI.PosToMapPos(new Vector2Int(1, 1)),
         AI.PosToMapPos(new Vector2Int(26, 1))};
     private bool isNPC;

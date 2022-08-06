@@ -12,7 +12,7 @@ public class Block : MonoBehaviour {
         collider.offset = new Vector2(xLen / 2f, yLen / 2f);
         collider.usedByComposite = true;
         if (NetworkManager.Singleton.IsServer) {
-            if (GetComponent<Destroyable>() != null) gameObject.tag = "Destroyable";
+            if (GetComponent<DestroyableController>() != null) gameObject.tag = "Destroyable";
             else gameObject.tag = "NoneDestroyable";
             int x = (int)transform.position.x;
             int y = (int)transform.position.y;

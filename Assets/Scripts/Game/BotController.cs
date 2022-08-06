@@ -8,23 +8,20 @@ public class BotController : MonoBehaviour {
     private AI ai;
     private Character character;
     private Rigidbody2D rigidbody2d;
-    public List<Instruction> currentInstructions = new();
+    private List<Instruction> currentInstructions = new();
     private Instruction currentInstruction;
-    public List<Instruction> nextInstructions;
-    public List<AIMapEvent> nextEvents;
+    private List<Instruction> nextInstructions;
+    private List<AIPredictionEvent> nextEvents;
     private Vector2Int pos;
+    private int waitingDecisionId = -1;
 
     private void Awake() {
         character = GetComponent<Character>();
         rigidbody2d = GetComponent<Rigidbody2D>();
-        ai = new(character, this);
+        ai = new(character.Id);
         int x = (int)Mathf.Floor(character.transform.position.x / 0.5f);
         int y = (int)Mathf.Floor(character.transform.position.y / 0.5f);
         pos = new(x, y);
-    }
-
-    private void Start() {
-        ai.Redecide(pos, 0);
     }
 
     private void FixedUpdate() {
@@ -44,21 +41,32 @@ public class BotController : MonoBehaviour {
         return true;
     }
 
+    private void RetriveNextInstructions() {
+        Instruction finalInstruction = currentInstructions[currentInstructions.Count - 1];
+        ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, nextEvents)).ContinueWith(
+            (result) => {
+                if (result.Result.Item1 != waitingDecisionId) return;
+                nextInstructions = result.Result.Item2;
+                nextEvents = result.Result.Item3;
+            }
+        );
+        nextInstructions = null;
+        nextEvents = null;
+    }
+
     private Vector2 RunInstruction(float time, Vector2 mapPos) {
         if (currentInstruction == null) {
             if (currentInstructions.Count == 0) {
                 if (nextInstructions != null) {
                     currentInstructions = nextInstructions;
-                    nextInstructions = null;
-                    Instruction finalInstruction = currentInstructions[currentInstructions.Count - 1];
-                    ai.Decide(finalInstruction.pos, new(finalInstruction.time - time, nextEvents));
-                    nextEvents = null;
                 } else {
-                    ai.Redecide(pos, time);
+                    currentInstructions = ai.DummyWaitInstruction(pos);
                 }
+                RetriveNextInstructions();
             }
             if (!IsValidInstruction(currentInstructions[0])) {
-                ai.Redecide(pos, time);
+                currentInstructions = ai.DummyWaitInstruction(pos);
+                RetriveNextInstructions();
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);

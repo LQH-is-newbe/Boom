@@ -24,7 +24,7 @@ public class ExplodeController : NetworkBehaviour {
             createNext = false;
         }
         if (timer < 0) {
-            Static.map[explode.MapPos] = null;
+            Static.map[explode.MapBlock] = null;
             Destroy(gameObject);
         }
     }
@@ -77,7 +77,7 @@ public class ExplodeController : NetworkBehaviour {
             NewExplode();
         } else {
             if (next.CompareTag("Destroyable")) {
-                next.GetComponent<Destroyable>().DestroyBlock();
+                next.GetComponent<DestroyableController>().DestroyBlock();
             } else if (next.CompareTag("Bomb")) {
                 next.GetComponent<BombController>().Explode();
             } else if (next.CompareTag("NoneDestroyable")){

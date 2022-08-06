@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 
-public class Destroyable : NetworkBehaviour {
+public class DestroyableController : NetworkBehaviour {
     private Vector2Int mapBlock;
     public Vector2Int MapBlock { get { return mapBlock; } }
 
