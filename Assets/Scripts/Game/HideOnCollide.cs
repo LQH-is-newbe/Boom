@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class HideOnCollide : MonoBehaviour {
     private void OnTriggerEnter2D(Collider2D collision) {
-        if (collision.GetComponent<Character>() != null && collision.GetComponent<Character>().IsOwner) {
+        if (collision.GetComponent<CharacterController>() != null && collision.GetComponent<CharacterController>().IsOwner) {
             foreach (SpriteRenderer child in GetComponentsInChildren<SpriteRenderer>()) {
                 child.color = new Color32(255, 255, 255, 120);
             }
@@ -12,7 +12,7 @@ public class HideOnCollide : MonoBehaviour {
     }
 
     private void OnTriggerExit2D(Collider2D collision) {
-        if (collision.GetComponent<Character>() != null && collision.GetComponent<Character>().IsOwner) {
+        if (collision.GetComponent<CharacterController>() != null && collision.GetComponent<CharacterController>().IsOwner) {
             foreach (SpriteRenderer child in GetComponentsInChildren<SpriteRenderer>()) {
                 child.color = new Color32(255, 255, 255, 255);
             }

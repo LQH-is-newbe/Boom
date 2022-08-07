@@ -264,7 +264,7 @@ public class AI {
                 if (map[PosToMapBlock(node.pos)].IsCollectable(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
                     targetNode = node;
                     putBomb = false;
-                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CollectableDestroy, node.time);
+                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CollectableDestroy, node.time, new Collectable(mapBlock, null));
                     return true;
                 }
                 return false;

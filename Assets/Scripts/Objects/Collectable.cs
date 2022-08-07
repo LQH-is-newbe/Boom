@@ -1,10 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 using Unity.Collections;
 using Unity.Netcode;
+using UnityEngine;
 
-public class Collectable : NetworkBehaviour {
+public class Collectable: MapElement {
     public class Type {
         private string name;
         private float prob;
@@ -43,51 +43,47 @@ public class Collectable : NetworkBehaviour {
             }
         }
 
-        public static void AttempCreateCollectable(GameObject collectablePrefab, Vector2 position) {
+        public static Type RandomCollectable() {
             if (Random.RandomFloat() < createProb) {
                 float rand = Random.RandomFloat() * probSum;
                 for (int i = 0; i < types.Length; ++i) {
                     if (rand < cumulativeProb[i]) {
-                        GameObject collectable = Instantiate(collectablePrefab, position, Quaternion.identity);
-                        collectable.GetComponent<Collectable>().Init(types[i]);
-                        collectable.GetComponent<NetworkObject>().Spawn(true);
-                        return;
+                        return types[i];
                     }
                 }
             }
+            return null;
         }
     }
 
-    public SpriteRenderer spriteRenderer;
-    private Type type;
-    public NetworkVariable<FixedString64Bytes> spritePath = new();
-    private Vector2Int mapPos;
-    public Vector2Int MapPos { get { return mapPos; } }
+    private static GameObject collectablePrefab = Resources.Load<GameObject>("Collectable/Collectable");
 
-    private void OnTriggerEnter2D(Collider2D other) {
-        if (!IsServer) return;
-        if (other.GetComponent<Character>() != null) {
-            type.Apply(other.GetComponent<Character>());
-            Destroy();
-        }
-    }
+    public Type type;
 
-    public override void OnNetworkSpawn() {
-        gameObject.tag = "Collectable";
-        spriteRenderer.sprite = Resources.Load<Sprite>(spritePath.Value.Value);
-    }
-
-    public void Init(Type type) {
+    public Collectable(Vector2Int mapBlock, Type type): base(mapBlock) {
         this.type = type;
-        spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
-        mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map[mapPos] = gameObject;
+    }
+
+    public void Create() {
+        Static.mapBlocks[MapBlock].element = this;
+        GameObject collectable = Object.Instantiate(collectablePrefab, new(MapBlock.x, MapBlock.y), Quaternion.identity);
+        CollectableController controller = collectable.GetComponent<CollectableController>();
+        Static.controllers[this] = controller;
+        controller.spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
+        controller.collectable = this;
+        collectable.GetComponent<NetworkObject>().Spawn(true);
         Static.collectables.Add(this);
     }
 
     public void Destroy() {
-        Static.map[mapPos] = null;
+        Object.Destroy(((CollectableController)Static.controllers[this]).gameObject);
         Static.collectables.Remove(this);
-        Destroy(gameObject);
+        Static.controllers.Remove(this);
+        Static.mapBlocks[MapBlock].element = null;
+    }
+
+    public void DestroyPrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
+        AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
+        predictionMapBlock.DestroyCollectable(time);
     }
 }

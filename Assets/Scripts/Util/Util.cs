@@ -22,7 +22,7 @@ public class Util {
 
     public static void StartTransition() {
         GameObject transition = Resources.Load<GameObject>("Transition");
-        GameObject.Instantiate(transition);
+        UnityEngine.Object.Instantiate(transition);
     }
 
     public static string GetLocalIPAddress() {

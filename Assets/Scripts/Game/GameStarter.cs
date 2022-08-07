@@ -19,17 +19,14 @@ public class GameStarter : MonoBehaviour {
     }
 
     private void ResetGameState() {
-        Player.livingPlayers.Clear();
-        foreach (Player player in Player.players.Values) {
-            Player.livingPlayers.Add(player);
-        }
-        Static.map.Clear();
+        Character.characters.Clear();
         Static.mapBlocks.Clear();
         for (int x = 0; x < Static.mapSize; ++x) {
             for (int y = 0; y < Static.mapSize; ++y) {
                 Static.mapBlocks[new(x, y)] = new();
             }
         }
+        Static.controllers.Clear();
     }
 
     private void InitObjects() {
@@ -42,27 +39,9 @@ public class GameStarter : MonoBehaviour {
 
         int index = 0;
         foreach (Player player in Player.players.Values) {
-            AddPlayerObjects(index, player);
+            Character character = new(player);
+            character.Create(index, player);
             ++index;
-        }
-    }
-
-    private void AddPlayerObjects(int index, Player player) {
-        GameObject characterAvatarHealth = Instantiate(characterAvatarHealthPrefab);
-        CharacterAvatarHealth characterAvatarHealthController = characterAvatarHealth.GetComponent<CharacterAvatarHealth>();
-        characterAvatarHealthController.characterName.Value = new(player.CharacterName);
-        characterAvatarHealthController.playerName.Value = new(player.Name);
-        characterAvatarHealthController.lives.Value = 3;
-        characterAvatarHealthController.playerId.Value = index + 1;
-        if (!player.IsNPC) characterAvatarHealth.GetComponent<NetworkObject>().SpawnWithOwnership(player.ClientId);
-        else characterAvatarHealth.GetComponent<NetworkObject>().Spawn();
-
-        GameObject character = Instantiate(characterPrefab, Player.playerInitialPositions[index], Quaternion.identity);
-        character.GetComponent<Character>().Init(player, characterAvatarHealthController);
-        if (!player.IsNPC) {
-            character.GetComponent<NetworkObject>().SpawnAsPlayerObject(player.ClientId, true);
-        } else {
-            character.GetComponent<NetworkObject>().Spawn(true);
         }
     }
 }

@@ -6,7 +6,7 @@ using System;
 
 public class BotController : MonoBehaviour {
     private AI ai;
-    private Character character;
+    private CharacterController characterController;
     private Rigidbody2D rigidbody2d;
     private List<Instruction> currentInstructions = new();
     private Instruction currentInstruction;
@@ -16,25 +16,25 @@ public class BotController : MonoBehaviour {
     private int waitingDecisionId = -1;
 
     private void Awake() {
-        character = GetComponent<Character>();
+        characterController = GetComponent<CharacterController>();
         rigidbody2d = GetComponent<Rigidbody2D>();
-        ai = new(character.Id);
-        int x = (int)Mathf.Floor(character.transform.position.x / 0.5f);
-        int y = (int)Mathf.Floor(character.transform.position.y / 0.5f);
+        ai = new(characterController.character.Id);
+        int x = (int)Mathf.Floor(characterController.transform.position.x / 0.5f);
+        int y = (int)Mathf.Floor(characterController.transform.position.y / 0.5f);
         pos = new(x, y);
     }
 
     private void FixedUpdate() {
         Vector2 newPos = RunInstruction(Time.deltaTime, rigidbody2d.position);
-        character.Move(newPos - rigidbody2d.position);
+        characterController.Move(newPos - rigidbody2d.position);
     }
 
     private bool IsValidInstruction(Instruction instruction) {
         if (instruction.waitTime == -1 && !instruction.putBomb) {
             Vector2Int curMapBlock = AI.PosToMapBlock(pos);
             Vector2Int nextMapBlock = AI.PosToMapBlock(instruction.pos);
-            GameObject go = Static.map[nextMapBlock];
-            if (go != null && go.CompareTag("Bomb") && !curMapBlock.Equals(nextMapBlock)) {
+            MapElement mapElement = Static.mapBlocks[nextMapBlock].element;
+            if (mapElement is Bomb && !curMapBlock.Equals(nextMapBlock)) {
                 return false;
             }
         }
@@ -82,18 +82,18 @@ public class BotController : MonoBehaviour {
                 currentInstruction = null;
             }
         } else if (currentInstruction.putBomb) {
-            character.PutBomb();
+            characterController.PutBomb();
             currentInstruction = null;
         } else {
             Vector2Int targetPos = currentInstruction.pos;
             Vector2 targetMapPos = AI.PosToMapPos(targetPos);
-            Vector2 mapPosShouldChange = (targetPos - pos) * (character.Speed * time);
+            Vector2 mapPosShouldChange = (targetPos - pos) * (characterController.speed.Value * time);
             Vector2 mapPosCanChange = targetMapPos - mapPos;
             if (mapPosShouldChange.sqrMagnitude > mapPosCanChange.sqrMagnitude) {
                 currentInstruction = null;
                 pos = targetPos;
                 mapPos = targetMapPos;
-                timeLeft = time - mapPosCanChange.magnitude / character.Speed;
+                timeLeft = time - mapPosCanChange.magnitude / characterController.speed.Value;
             } else {
                 mapPos += mapPosShouldChange;
             }

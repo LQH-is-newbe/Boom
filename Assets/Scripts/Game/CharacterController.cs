@@ -4,47 +4,35 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
 
-public class Character : NetworkBehaviour {
-    public const float initialSpeed = 4;
-    public const int initialBombPower = 4;
-    public const int initialBombCapacity = 100;
-    public const int maxHealth = 3;
-    public const float timeInvincible = 1;
-
+public class CharacterController : NetworkBehaviour {
     private NetworkVariable<FixedString64Bytes> characterName = new();
     private NetworkVariable<bool> alive = new(true);
     private NetworkVariable<bool> isNPC = new();
+    public NetworkVariable<float> speed = new(Character.initialSpeed);
 
-    [SerializeField]
-    private GameObject bombPrefab;
     [SerializeField]
     private GameObject display;
 
     private Rigidbody2D rigidbody2d;
     private NetworkAnimator networkAnimator;
-    private GameStateController gameStateController;
     private Animator animator;
     private CharacterAvatarHealth characterAvatarHealth;
 
-    public Vector2 Position { get { return transform.position; } }
-    private float speed;
-    public float Speed { get { return speed; } set { speed = value; ChangeSpeedClientRpc(value); } }
-    public int BombPower { get; set; }
-    public int BombCapacity { get; set; }
-    private int health;
-    public int BombNum { get; set; }
     private float invincibleTimer;
-    public int Id { get; set; }
     private float deadTimer = -1;
+    public Character character;
 
     private void Update() {
         if (!IsServer) return;
         if (invincibleTimer > 0) {
             invincibleTimer -= Time.deltaTime;
+            if (invincibleTimer <= 0) {
+                character.IsInvincible = false;
+            } 
         }
         if (deadTimer > 0) {
             deadTimer -= Time.deltaTime;
-            if (deadTimer < 0) {
+            if (deadTimer <= 0) {
                 Destroy(gameObject);
             }
         }
@@ -53,7 +41,6 @@ public class Character : NetworkBehaviour {
     public override void OnNetworkSpawn() {
         networkAnimator = display.GetComponent<NetworkAnimator>();
         GetComponent<BoxCollider2D>().size = Static.characterColliderSize;
-        Speed = initialSpeed;
         if (IsOwner) {
             rigidbody2d = GetComponent<Rigidbody2D>();
             if (isNPC.Value) {
@@ -64,11 +51,6 @@ public class Character : NetworkBehaviour {
         }
         if (IsServer) {
             gameObject.tag = "Character";
-            BombPower = initialBombPower;
-            BombCapacity = initialBombCapacity;
-            BombNum = 0;
-            health = maxHealth;
-            gameStateController = GameObject.Find("GameStateController").GetComponent<GameStateController>();
         }
         if (IsClient) {
             animator = display.GetComponent<Animator>();
@@ -85,12 +67,11 @@ public class Character : NetworkBehaviour {
         }
     }
 
-    public void Init(Player player, CharacterAvatarHealth characterAvatarHealth) {
-        Id = player.Id;
-        characterName.Value = new FixedString64Bytes(player.CharacterName);
-        isNPC.Value = player.IsNPC;
+    public void Init(Character character, CharacterAvatarHealth characterAvatarHealth) {
+        this.character = character;
+        characterName.Value = new FixedString64Bytes(character.CharacterName);
+        isNPC.Value = character.IsNPC;
         this.characterAvatarHealth = characterAvatarHealth;
-        player.Character = this;
     }
 
     public void Move(Vector2 positionChange) {
@@ -117,17 +98,7 @@ public class Character : NetworkBehaviour {
     }
 
     public void PutBombServerCall() {
-        if (!alive.Value || BombNum >= BombCapacity) return;
-        int x = (int)Mathf.Floor(transform.position.x);
-        int y = (int)Mathf.Floor(transform.position.y);
-        Vector2Int pos = new(x, y);
-        if (Static.map[pos] == null) {
-            GameObject bomb = Instantiate(bombPrefab, new Vector2(x, y), Quaternion.identity);
-            BombController bombController = bomb.GetComponent<BombController>();
-            bombController.Init(this, BombPower);
-            bomb.GetComponent<NetworkObject>().Spawn(true);
-            ++BombNum;
-        }
+        character.PutBomb();
     }
 
     [ServerRpc]
@@ -135,35 +106,29 @@ public class Character : NetworkBehaviour {
         PutBombServerCall();
     }
 
-    public void ChangeHealth(int amount) {
-        if (amount < 0) {
-            if (invincibleTimer > 0) return;
-            invincibleTimer = timeInvincible;
-            networkAnimator.AnimationClientRpc("Hit");
-        }
-        health = Mathf.Clamp(health + amount, 0, maxHealth);
-        characterAvatarHealth.lives.Value = health;
-        if (health == 0) {
-            networkAnimator.AnimationClientRpc("Dead", true);
-            alive.Value = false;
-            Player.livingPlayers.Remove(Player.players[Id]);
-            deadTimer = 3;
-            gameStateController.TestPlayerWins();
-        }
+    public void Hit() {
+        invincibleTimer = Character.timeInvincible;
+        networkAnimator.AnimationClientRpc("Hit");
     }
 
-    [ClientRpc]
-    public void ChangeSpeedClientRpc(float speed) {
-        this.speed = speed;
+    public void ChangeHealth(int health) {
+        characterAvatarHealth.lives.Value = health;
+    }
+
+    public void Dead() {
+        networkAnimator.AnimationClientRpc("Dead", true);
+        alive.Value = false;
+        deadTimer = 3;
     }
 
     public void MoveServerCall(float x, float y) {
+        character.Position = new(x, y);
+        transform.position = new(x, y);
         MoveClientRpc(x, y, Util.GetClientRpcParamsExcept(OwnerClientId));
     }
 
     [ServerRpc]
     public void MoveServerRpc(float x, float y) {
-        transform.position = new Vector2(x, y);
         MoveServerCall(x, y);
     }
 

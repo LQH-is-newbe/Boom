@@ -5,12 +5,6 @@ using UnityEngine;
 public class Player {
     public static Dictionary<ulong, Player> clientPlayers = new();
     public static Dictionary<int, Player> players = new();
-    public static List<Player> livingPlayers = new();
-    public static Vector2[] playerInitialPositions = { 
-        AI.PosToMapPos(new Vector2Int(13, 23)),
-        AI.PosToMapPos(new Vector2Int(13, 19)),
-        AI.PosToMapPos(new Vector2Int(1, 1)),
-        AI.PosToMapPos(new Vector2Int(26, 1))};
     private bool isNPC;
     public bool IsNPC { get { return isNPC; } }
     private int id;
@@ -21,8 +15,6 @@ public class Player {
     public string CharacterName { get { return characterName; } set { characterName = value; } }
     private ulong clientId;
     public ulong ClientId { get { return clientId; } }
-    private Character character;
-    public Character Character { get { return character; } set { character = value; } }
 
     public static Player CreatePlayer(bool isNPC, ulong clientId = 0, string clientName = "") {
         Player player = new();
@@ -46,7 +38,6 @@ public class Player {
     }
 
     public void Remove() {
-        livingPlayers.Remove(this);
         players.Remove(id);
         if (!isNPC) clientPlayers.Remove(clientId);
     }

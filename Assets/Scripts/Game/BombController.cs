@@ -7,10 +7,7 @@ public class BombController : NetworkBehaviour {
     private float timer;
     public float TimeToExplode { get { return timer; } }
     public BoxCollider2D bombCollider;
-    public GameObject explodePrefab;
-    private Character creater;
-    private Bomb bomb;
-    public Bomb Bomb { get { return bomb; } }
+    public Bomb bomb;
 
     public override void OnNetworkSpawn() {
         if (IsServer) {
@@ -30,26 +27,16 @@ public class BombController : NetworkBehaviour {
     private void Update() {
         if (!IsServer) return;
         timer -= Time.deltaTime;
-        if (timer < 0) Explode();
+        if (timer < 0) {
+            bomb.Trigger();
+        }
     }
 
     private void OnTriggerExit2D(Collider2D character) {
         Physics2D.IgnoreCollision(bombCollider, character, false);
     }
 
-    public void Init(Character creater, int bombPower) {
-        this.creater = creater;
-        Vector2Int mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map[mapPos] = gameObject;
-        bomb = new(mapPos, bombPower, creater.Id);
-    }
-
-    public void Explode() {
-        Static.map[bomb.MapBlock] = null;
+    public void Destroy() {
         Destroy(gameObject);
-        creater.BombNum--;
-        GameObject explode = Instantiate(explodePrefab, transform.position, Quaternion.identity);
-        explode.GetComponent<ExplodeController>().Init(bomb.BombPower, Direction.None);
-        explode.GetComponent<NetworkObject>().Spawn();
     }
 }

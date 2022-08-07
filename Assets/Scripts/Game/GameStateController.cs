@@ -9,10 +9,12 @@ public class GameStateController : MonoBehaviour {
     private float messageShowTimer = 0;
 
     public void TestPlayerWins() {
-        if (Player.livingPlayers.Count == 1) {
-            ShowMessage(Player.livingPlayers[0].Name + " Wins!");
-            messageShowTimer = messageShowTime;
-        } else if (Player.livingPlayers.Count == 0) {
+        if (Character.characters.Keys.Count == 1) {
+            foreach (int id in Character.characters.Keys) {
+                ShowMessage(Player.players[id].Name + " Wins!");
+                messageShowTimer = messageShowTime;
+            }
+        } else if (Character.characters.Keys.Count == 0) {
             ShowMessage("Game Over");
             messageShowTimer = messageShowTime;
         }

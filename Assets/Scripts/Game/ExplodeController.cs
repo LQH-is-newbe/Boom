@@ -10,21 +10,20 @@ public class ExplodeController : NetworkBehaviour {
     public GameObject explodePrefab;
     public GameObject display;
     private float timer = 10;
-    private Explode explode;
+    public Explode explode;
     private bool createNext = true;
     public float TimeToExplode { get { return timer - explode.ExistTime + Static.explodeInterval; } }
     public float TimeToDestroy { get { return timer; } }
-    public Explode Explode { get { return explode; } }
 
     private void Update() {
         if (!NetworkManager.Singleton.IsServer) return;
         timer -= Time.deltaTime;
         if (createNext && timer < explode.ExistTime - Static.explodeInterval) {
-            explode.CreateNextExplode(OnExplodeCreate);
+            explode.Extend();
             createNext = false;
         }
         if (timer < 0) {
-            Static.map[explode.MapBlock] = null;
+            explode.Destroy();
             Destroy(gameObject);
         }
     }
@@ -32,9 +31,7 @@ public class ExplodeController : NetworkBehaviour {
     private void OnTriggerEnter2D(Collider2D other) {
         if (!IsServer) return;
         if (other.CompareTag("Character")) {
-            other.GetComponent<Character>().ChangeHealth(-1);
-        } else if (other.CompareTag("Collectable")) {
-            other.GetComponent<Collectable>().Destroy();
+            other.GetComponent<CharacterController>().character.ChangeHealth(-1);
         }
     }
 
@@ -61,35 +58,6 @@ public class ExplodeController : NetworkBehaviour {
             display.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(spritePath.Value.Value);
             display.transform.rotation = Quaternion.identity;
             display.transform.Rotate(0, 0, rotateAngle.Value, Space.Self);
-        }
-    }
-
-    public void Init(int powerLeft, Direction direction) {
-        Vector2Int mapPos = new((int)transform.position.x, (int)transform.position.y);
-        Static.map[mapPos] = gameObject;
-        explode = new Explode(mapPos, powerLeft, direction);
-    }
-
-    private void OnExplodeCreate(Vector2Int pos, int powerLeft, Direction direction) {
-        GameObject next = Static.map[pos];
-
-        if (next == null) {
-            NewExplode();
-        } else {
-            if (next.CompareTag("Destroyable")) {
-                next.GetComponent<DestroyableController>().DestroyBlock();
-            } else if (next.CompareTag("Bomb")) {
-                next.GetComponent<BombController>().Explode();
-            } else if (next.CompareTag("NoneDestroyable")){
-            } else {
-                NewExplode();
-            }
-        }
-
-        void NewExplode() {
-            GameObject explode = Instantiate(explodePrefab, new Vector2(pos.x, pos.y), Quaternion.identity);
-            explode.GetComponent<ExplodeController>().Init(powerLeft, direction);
-            explode.GetComponent<NetworkObject>().Spawn(true);
         }
     }
 }

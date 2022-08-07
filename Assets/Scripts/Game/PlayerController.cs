@@ -11,10 +11,10 @@ public class PlayerController : MonoBehaviour {
         downKey = KeyCode.DownArrow,
         putBombKey = KeyCode.Space;
     private List<KeyCode> pressingDirKeys = new List<KeyCode>();
-    private Character character;
+    private CharacterController character;
 
     private void Awake() {
-        character = GetComponent<Character>();
+        character = GetComponent<CharacterController>();
     }
 
     private void Update() {
@@ -32,7 +32,7 @@ public class PlayerController : MonoBehaviour {
     private void FixedUpdate() {
         float horizontal = 0f, vertical = 0f;
         if (pressingDirKeys.Count > 0) {
-            float posChange = character.Speed * Time.deltaTime;
+            float posChange = character.speed.Value * Time.deltaTime;
             KeyCode dirKey = pressingDirKeys[^1];
             if (dirKey == leftKey) horizontal = -posChange;
             if (dirKey == rightKey) horizontal = posChange;
