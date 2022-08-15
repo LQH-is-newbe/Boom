@@ -5,6 +5,8 @@ using Unity.Netcode;
 using Unity.Collections;
 
 public class ExplodeController : NetworkBehaviour {
+    private const float fadeAwayTime = 0.1f;
+
     public NetworkVariable<FixedString64Bytes> spritePath = new();
     public NetworkVariable<float> rotateAngle = new();
     public GameObject explodePrefab;
@@ -12,15 +14,20 @@ public class ExplodeController : NetworkBehaviour {
     private float timer = 10;
     public Explode explode;
     private bool createNext = true;
-    public float TimeToExplode { get { return timer - explode.ExistTime + Static.explodeInterval; } }
+    private bool isFadingAway = false;
+    public float TimeToExplode { get { return timer - explode.ExistTime + Explode.explodeInterval; } }
     public float TimeToDestroy { get { return timer; } }
 
     private void Update() {
         if (!NetworkManager.Singleton.IsServer) return;
         timer -= Time.deltaTime;
-        if (createNext && timer < explode.ExistTime - Static.explodeInterval) {
+        if (createNext && timer < explode.ExistTime - Explode.explodeInterval) {
             explode.Extend();
             createNext = false;
+        }
+        if (!isFadingAway && timer < fadeAwayTime) {
+            FadeAwayClientRpc();
+            isFadingAway = true;
         }
         if (timer < 0) {
             explode.Destroy();
@@ -31,7 +38,8 @@ public class ExplodeController : NetworkBehaviour {
     private void OnTriggerEnter2D(Collider2D other) {
         if (!IsServer) return;
         if (other.CompareTag("Character")) {
-            other.GetComponent<CharacterController>().character.ChangeHealth(-1);
+            Character character = other.GetComponent<CharacterController>().character;
+            if (character.IsAlive) other.GetComponent<CharacterController>().character.ChangeHealth(-1);
         }
     }
 
@@ -59,5 +67,11 @@ public class ExplodeController : NetworkBehaviour {
             display.transform.rotation = Quaternion.identity;
             display.transform.Rotate(0, 0, rotateAngle.Value, Space.Self);
         }
+    }
+
+    [ClientRpc]
+    private void FadeAwayClientRpc() {
+        FadeAway fadeAway = gameObject.AddComponent<FadeAway>();
+        fadeAway.Init(display.GetComponent<SpriteRenderer>(), fadeAwayTime);
     }
 }

@@ -5,7 +5,7 @@ using Unity.Netcode;
 using UnityEngine;
 
 public class Explode {
-    public const float explodeInterval = 0.06f;
+    public const float explodeInterval = 0.04f;
     public const float explodeEndExistTime = 0.3f;
 
     public static GameObject explodePrefab = Resources.Load<GameObject>("Explode/Explode");
@@ -23,7 +23,7 @@ public class Explode {
         this.mapBlock = mapBlock;
         this.powerLeft = powerLeft;
         this.direction = direction;
-        existTime = Static.explodeEndExistTime + (powerLeft - 1) * Static.explodeInterval;
+        existTime = explodeEndExistTime + (powerLeft - 1) * explodeInterval;
     }
 
     public Explode Copy() {
@@ -42,7 +42,7 @@ public class Explode {
     public void CreatePrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
         AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
         predictionMapBlock.AddExplodeStart(time);
-        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + explodeInterval, this), time + Explode.explodeInterval);
+        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + explodeInterval, this), time + explodeInterval);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + ExistTime, this), time + ExistTime);
     }
 
@@ -51,7 +51,9 @@ public class Explode {
             MapElement next = Static.mapBlocks[explode.MapBlock].element;
             if (next is NoneDestroyable) return;
             if (next is Destroyable destroyable) {
-                destroyable.Destroy();
+                if (!destroyable.exploding) {
+                    destroyable.Destroy();
+                }
                 return;
             }
             if (next is Bomb bomb) {

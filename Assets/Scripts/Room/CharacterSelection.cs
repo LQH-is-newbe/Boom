@@ -4,12 +4,15 @@ using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class CharacterSelection : NetworkBehaviour {
     public GameObject characterSelectionUnitPrefab;
     private CharacterSelectionUnit selectedCharacter;
     public GameObject playerDisplayPrefab;
     private List<GameObject> playerDisplays = new();
+    private bool isReady = false;
+    public TMPro.TextMeshProUGUI readyButtonText;
 
     // server call
     public void Init() {
@@ -35,12 +38,14 @@ public class CharacterSelection : NetworkBehaviour {
         RoomPlayerUI playerDisplay = playerDisplays[player.Id].GetComponent<RoomPlayerUI>();
         if (player.IsNPC) playerDisplay.isBot.Value = true;
         playerDisplay.playerName.Value = new(player.Name);
+        playerDisplay.isReady.Value = player.IsReady;
         if (player.CharacterName != null) playerDisplay.characterName.Value = new(player.CharacterName);
     }
 
     public void RemovePlayer(Player player) {
         RoomPlayerUI playerDisplay = playerDisplays[player.Id].GetComponent<RoomPlayerUI>();
         playerDisplay.isBot.Value = false;
+        playerDisplay.isReady.Value = false;
         playerDisplay.characterName.Value = new("");
         playerDisplay.playerName.Value = new("");
     }
@@ -53,6 +58,12 @@ public class CharacterSelection : NetworkBehaviour {
         this.selectedCharacter = selectedCharacter;
         selectedCharacter.Selected = true;
         SelectCharacterServerRpc(NetworkManager.Singleton.LocalClientId, selectedCharacter.characterName.Value.Value);
+    }
+
+    public void SetReady() {
+        isReady = !isReady;
+        readyButtonText.text = isReady ? "Cancel" : "Ready";
+        SetReadyServerRpc(NetworkManager.Singleton.LocalClientId, isReady);
     }
 
     // Server RPC
@@ -72,5 +83,19 @@ public class CharacterSelection : NetworkBehaviour {
                 Util.NotifyServerAddPlayer();
             }
         }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void SetReadyServerRpc(ulong clientId, bool isReady) {
+        Player player = Player.clientPlayers[clientId];
+        player.IsReady = isReady;
+        playerDisplays[player.Id].GetComponent<RoomPlayerUI>().isReady.Value = isReady;
+        if (!isReady) return;
+        foreach (ulong id in Player.clientPlayers.Keys) {
+            if (!Player.clientPlayers[id].IsReady) return;
+        }
+        //TransitionClientRpc();
+        if (!Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/start-game", Static.roomIdJson);
+        NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
     }
 }

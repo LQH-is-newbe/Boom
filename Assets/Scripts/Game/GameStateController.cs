@@ -5,25 +5,36 @@ using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
 public class GameStateController : MonoBehaviour {
-    public float messageShowTime = 2;
-    private float messageShowTimer = 0;
+    public const float gameOverMessageShowTime = 2;
+    private float gameOverMessagetimer;
+    private float countDownTimer;
+
+    private void Awake() {
+        countDownTimer = 3;
+    }
 
     public void TestPlayerWins() {
         if (Character.characters.Keys.Count == 1) {
             foreach (int id in Character.characters.Keys) {
-                ShowMessage(Player.players[id].Name + " Wins!");
-                messageShowTimer = messageShowTime;
+                ShowGameOverMessage(Player.players[id].Name + " Wins!");
             }
         } else if (Character.characters.Keys.Count == 0) {
-            ShowMessage("Game Over");
-            messageShowTimer = messageShowTime;
+            ShowGameOverMessage("Game Over");
         }
     }
 
     private void Update() {
-        if (messageShowTimer > 0) {
-            messageShowTimer -= Time.deltaTime;
-            if (messageShowTimer < 0) NewGame();
+        if (countDownTimer > 0) {
+            countDownTimer -= Time.deltaTime;
+            if (countDownTimer <= 0) {
+                Static.networkVariables.gameRunning.Value = true;
+            }
+        }
+        if (gameOverMessagetimer > 0) {
+            gameOverMessagetimer -= Time.deltaTime;
+            if (gameOverMessagetimer <= 0) {
+                NewGame();
+            }
         }
     }
 
@@ -32,8 +43,9 @@ public class GameStateController : MonoBehaviour {
         NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
     }
 
-    private void ShowMessage(string message) {
-        GameMessage gameMessage = GameObject.Find("GameUI").GetComponent<GameMessage>();
-        gameMessage.ShowMessageClientRpc(message);
+    private void ShowGameOverMessage(string message) {
+        GameObject.Find("GameMessage").GetComponent<GameMessage>().GameOverClientRpc(message);
+        Static.networkVariables.gameRunning.Value = false;
+        gameOverMessagetimer = gameOverMessageShowTime;
     }
 }

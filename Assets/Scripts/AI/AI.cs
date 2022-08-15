@@ -6,7 +6,8 @@ using UnityEngine;
 
 public class AI {
     private const float preventDis = 0.03f;
-    private const float preventTime = 0.05f;
+    private const float enterErrorTime = 0.01f;
+    private const float moveLagErrorTime = 0.02f;
     public const float decideTime = 0.1f;
 
     private int playerId;
@@ -172,13 +173,14 @@ public class AI {
                 // possible enter times, enter each interval as soon as possible (greedy)
                 List<float> timesToEnter = nextAiMapBlock.TimesToEnter(cur.time);
                 for (int j = 0; j < timesToEnter.Count; ++j) {
-                    float startTime = timesToEnter[j] + (j == 0 ? 0: preventTime);
+                    float startTime = timesToEnter[j] + (j == 0 ? 0: enterErrorTime);
                     float endTime = startTime + transitionTime;
                     int intervalIndex = nextAiMapBlock.GetIntervalIndex(endTime);
                     SearchNode fastestNode = fastestNodes.Get(nextPos, intervalIndex);
                     if (fastestNode != null && fastestNode.time <= endTime
                         || nextAiMapBlock.IsDestroyable(startTime)
-                        || !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime))
+                        //|| !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime))
+                        || !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime + moveLagErrorTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime + moveLagErrorTime))
                         || nextAiMapBlock.Bomb(startTime) != null && !nextMapBlock.Equals(curMapBlock)
                         ) continue;
                     float waitTime = startTime - cur.time;
@@ -199,7 +201,7 @@ public class AI {
 
         List<Instruction> instructions = new();
         List<AIPredictionEvent> additionalEvents = new();
-        DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, false, false);
+        DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
         Debug.Log("instructions: " + InstructionsToString(instructions));
         Debug.Log("additional events: " + EventsToString(additionalEvents));
 
@@ -222,7 +224,6 @@ public class AI {
         AIPredictionCharacter character = prediction.characters[playerId];
         float destroyableExistRatioThreshold = 0.5f;
         float destroyableExistRatio = Static.destroyables.Count / (float)Static.totalDestroyableNum;
-        bool putBomb = false;
         SearchNode targetNode = null;
         AIPredictionEvent newAdditionalEvent = null;
         Func<SearchNode, bool> TestPutBomb = (node) => {
@@ -233,7 +234,6 @@ public class AI {
             testAdditionalEvents.Add(testAdditionalEvent);
             if (SearchWayOut(node.pos, node.time, aiPredictionGenerator.Generate(playerId, testAdditionalEvents, assumeCharacterPutBomb), ignoreExplode)) {
                 targetNode = node;
-                putBomb = true;
                 newAdditionalEvent = testAdditionalEvent;
                 return true;
             } else {
@@ -255,7 +255,9 @@ public class AI {
             (time) => {
                 return Static.destroyables.Count > 0 && character.bombNum.ValueAt(time) < character.bombCapacity ?
                     destroyableExistRatio / destroyableExistRatioThreshold - time : -100;
-            }
+            },
+            true,
+            false
         );
         SearchTarget closestCollectable = new("closestCollectable",
             (node) => {
@@ -263,7 +265,6 @@ public class AI {
                 AIPredictionMapBlock aIMapBlock = map[mapBlock];
                 if (map[PosToMapBlock(node.pos)].IsCollectable(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
                     targetNode = node;
-                    putBomb = false;
                     newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CollectableDestroy, node.time, new Collectable(mapBlock, null));
                     return true;
                 }
@@ -271,7 +272,9 @@ public class AI {
             },
             (time) => {
                 return Static.collectables.Count > 0 ? 3 - time : -100;
-            }
+            },
+            false,
+            false
         );
         SearchTarget closestCharacter = new("closestCharacter",
             (node) => {
@@ -306,19 +309,30 @@ public class AI {
             (time) => {
                 //Debug.Log(character.bombNum.ValueAt(time));
                 return character.bombNum.ValueAt(time) < character.bombCapacity ? -50 + destroyableExistRatioThreshold / destroyableExistRatio - time : -100;
-            }
+            },
+            true,
+            false
         );
         SearchTarget closestSafe = new("closestSafe",
             (node) => {
-                return map[PosToMapBlock(node.pos)].IsSafe(node.time);
+                if (map[PosToMapBlock(node.pos)].IsSafe(node.time)) {
+                    targetNode = node;
+                    newAdditionalEvent = null;
+                    return true;
+                } else {
+                    return false;
+                }
             },
             (time) => {
                 return -98;
-            }
+            },
+            false,
+            true
         );
-        SearchTarget[] searchTargets = {closestDestroyableNeighbor, closestCollectable, closestCharacter};
+        SearchTarget[] searchTargets = {closestDestroyableNeighbor, closestCollectable, closestCharacter, closestSafe};
         int searchingTargets = searchTargets.Length;
         float highestScore = -99;
+        SearchTarget target = null;
         Func<SearchNode, bool> OnNodePop = (node) => {
             foreach (SearchTarget searchTarget in searchTargets) {
                 if (!searchTarget.searching) continue;
@@ -327,6 +341,7 @@ public class AI {
                     searchTarget.searching = false;
                     --searchingTargets;
                 } else if (searchTarget.Found(node)) {
+                    target = searchTarget;
                     searchTarget.searching = false;
                     --searchingTargets;
                     highestScore = score;
@@ -335,20 +350,24 @@ public class AI {
             return searchingTargets == 0;
         };
 
-        FastestNodes fastestNodes;
-        Search(source, initTime, prediction, ignoreExplode, out fastestNodes, OnNodePop: OnNodePop);
+        Search(source, initTime, prediction, ignoreExplode, out FastestNodes fastestNodes, OnNodePop: OnNodePop);
+        //Debug.Log(prediction.map);
+        //Debug.Log(fastestNodes);
 
         if (targetNode == null) {
-            instructions.Add(new(source, decideTime, waitTime: decideTime));
+            //instructions.Add(new(source, decideTime, waitTime: decideTime));
             if (assumeCharacterPutBomb) {
+                Debug.Log("disable character bomb");
                 DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, false, ignoreExplode);
             } else if (!ignoreExplode) {
+                Debug.Log("ignore explode");
                 DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, true);
             } else {
+                Debug.Log("no way to go");
                 instructions.Add(new(source, decideTime, waitTime: decideTime));
             }
         } else {
-            GetInstructions(targetNode, putBomb, instructions);
+            GetInstructions(targetNode, target.putBomb, instructions);
             float lastInstructionTime = instructions.Count > 0 ? instructions[^1].time : initTime;
             if (newAdditionalEvent != null && newAdditionalEvent.time <= lastInstructionTime) additionalEvents.Add(newAdditionalEvent);
             //Debug.Log(InstructionsToString(instructions));
@@ -359,7 +378,14 @@ public class AI {
                     Debug.Log("decide instruction too deep");
                     return;
                 }
-                DecideInstructions(targetNode.pos, targetNode.time, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, ignoreExplode, ++depth);
+                if (target.waitRemain) {
+                    Instruction waitRemain = instructions.Count > 0 ?
+                        new(instructions[instructions.Count - 1].pos, decideTime, waitTime: decideTime - instructions[instructions.Count - 1].time) :
+                        new(source, decideTime, waitTime: decideTime);
+                    instructions.Add(waitRemain);
+                } else {
+                    DecideInstructions(targetNode.pos, targetNode.time, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, ignoreExplode, ++depth);
+                }
             }
         }
     }
@@ -369,14 +395,16 @@ public class SearchTarget {
     public bool searching = true;
     public Func<SearchNode, bool> Found;
     public Func<float, float> Score;
-    //public Action OnBeTarget;
     public string tag;
+    public bool putBomb;
+    public bool waitRemain;
 
-    public SearchTarget(string tag, Func<SearchNode, bool> Found, Func<float, float> Score) {
+    public SearchTarget(string tag, Func<SearchNode, bool> Found, Func<float, float> Score, bool putBomb, bool waitRemain) {
         this.tag = tag;
         this.Found = Found;
         this.Score = Score;
-        //this.OnBeTarget = OnBeTarget;
+        this.putBomb = putBomb;
+        this.waitRemain = waitRemain;
     }
 }
 

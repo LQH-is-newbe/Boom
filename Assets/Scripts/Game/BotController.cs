@@ -25,7 +25,8 @@ public class BotController : MonoBehaviour {
     }
 
     private void FixedUpdate() {
-        Vector2 newPos = RunInstruction(Time.deltaTime, rigidbody2d.position);
+        if (!Static.networkVariables.gameRunning.Value || !characterController.alive.Value) return;
+        Vector2 newPos = RunInstruction(Time.fixedDeltaTime, rigidbody2d.position);
         characterController.Move(newPos - rigidbody2d.position);
     }
 
@@ -41,9 +42,9 @@ public class BotController : MonoBehaviour {
         return true;
     }
 
-    private void RetriveNextInstructions() {
+    private void RetriveNextInstructions(float timeRemains) {
         Instruction finalInstruction = currentInstructions[currentInstructions.Count - 1];
-        ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, nextEvents)).ContinueWith(
+        ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, timeRemains, nextEvents)).ContinueWith(
             (result) => {
                 if (result.Result.Item1 != waitingDecisionId) return;
                 nextInstructions = result.Result.Item2;
@@ -62,11 +63,11 @@ public class BotController : MonoBehaviour {
                 } else {
                     currentInstructions = ai.DummyWaitInstruction(pos);
                 }
-                RetriveNextInstructions();
+                RetriveNextInstructions(time);
             }
             if (!IsValidInstruction(currentInstructions[0])) {
                 currentInstructions = ai.DummyWaitInstruction(pos);
-                RetriveNextInstructions();
+                RetriveNextInstructions(time);
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);
@@ -84,6 +85,7 @@ public class BotController : MonoBehaviour {
         } else if (currentInstruction.putBomb) {
             characterController.PutBomb();
             currentInstruction = null;
+            timeLeft = time;
         } else {
             Vector2Int targetPos = currentInstruction.pos;
             Vector2 targetMapPos = AI.PosToMapPos(targetPos);

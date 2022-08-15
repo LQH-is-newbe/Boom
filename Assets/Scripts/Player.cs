@@ -15,6 +15,7 @@ public class Player {
     public string CharacterName { get { return characterName; } set { characterName = value; } }
     private ulong clientId;
     public ulong ClientId { get { return clientId; } }
+    public bool IsReady { get; set; }
 
     public static Player CreatePlayer(bool isNPC, ulong clientId = 0, string clientName = "") {
         Player player = new();
@@ -24,10 +25,12 @@ public class Player {
                 if (isNPC) {
                     player.name = "Bot " + (i + 1).ToString();
                     player.characterName = Static.characters[Random.RandomInt(Static.characters.Length)];
+                    player.IsReady = true;
                 } else {
                     clientPlayers[clientId] = player;
                     player.clientId = clientId;
                     player.name = clientName;
+                    player.IsReady = false;
                 }
                 player.id = i;
                 players[i] = player;

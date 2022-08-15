@@ -30,6 +30,7 @@ public class PlayerController : MonoBehaviour {
     }
 
     private void FixedUpdate() {
+        if (!Static.networkVariables.gameRunning.Value || !character.alive.Value) return;
         float horizontal = 0f, vertical = 0f;
         if (pressingDirKeys.Count > 0) {
             float posChange = character.speed.Value * Time.deltaTime;

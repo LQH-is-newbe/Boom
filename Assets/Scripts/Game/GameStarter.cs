@@ -7,8 +7,7 @@ using System;
 
 public class GameStarter : MonoBehaviour {
     public GameObject uiPrefab;
-    public GameObject characterPrefab;
-    public GameObject characterAvatarHealthPrefab;
+    public GameObject networkVariablesPrefab;
 
     private void Awake() {
         if (!NetworkManager.Singleton.IsServer) return;
@@ -27,6 +26,9 @@ public class GameStarter : MonoBehaviour {
             }
         }
         Static.controllers.Clear();
+        Static.collectables.Clear();
+        Static.destroyables.Clear();
+        Static.totalDestroyableNum = 0;
     }
 
     private void InitObjects() {
@@ -34,8 +36,14 @@ public class GameStarter : MonoBehaviour {
         GameObject map = Instantiate(mapPrefab, Vector2.zero, Quaternion.identity);
         map.GetComponent<NetworkObject>().Spawn(true);
 
+        Collectable.AssignDestroyableDrops();
+
         GameObject ui = Instantiate(uiPrefab);
         ui.GetComponent<NetworkObject>().Spawn(true);
+
+        GameObject networkVariables = Instantiate(networkVariablesPrefab);
+        networkVariables.GetComponent<NetworkObject>().Spawn(true);
+        Static.networkVariables = networkVariables.GetComponent<NetworkVariables>();
 
         int index = 0;
         foreach (Player player in Player.players.Values) {

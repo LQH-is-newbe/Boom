@@ -10,22 +10,26 @@ public class RoomPlayerUI : NetworkBehaviour {
     AnimatorOverrideController animatorOverrideController;
     public TMPro.TextMeshProUGUI playerNameText;
     public GameObject removeBotButton;
+    public GameObject isReadyIcon;
     public NetworkVariable<FixedString64Bytes> characterName = new();
     public NetworkVariable<FixedString64Bytes> playerName = new();
     public NetworkVariable<bool> isBot = new();
     public NetworkVariable<int> index = new();
+    public NetworkVariable<bool> isReady = new();
 
     public override void OnNetworkSpawn() {
         transform.SetParent(GameObject.Find("PlayerRoomDisplays").transform, false);
         isBot.OnValueChanged += OnIsBotChanged;
         characterName.OnValueChanged += OnCharacterNameChanged;
         playerName.OnValueChanged += OnPlayerNameChanged;
+        isReady.OnValueChanged += OnIsReadyChanged;
         animatorOverrideController = new AnimatorOverrideController(characterDisplay.GetComponent<Animator>().runtimeAnimatorController);
         animatorOverrideController["UI_static"] = Resources.Load<AnimationClip>("UI_none");
         characterDisplay.GetComponent<Animator>().runtimeAnimatorController = animatorOverrideController;
         OnIsBotChanged(false, isBot.Value);
         OnCharacterNameChanged("", characterName.Value);
         OnPlayerNameChanged("", playerName.Value);
+        OnIsReadyChanged(false, isReady.Value);
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -52,6 +56,10 @@ public class RoomPlayerUI : NetworkBehaviour {
     }
 
     public void OnIsBotChanged(bool previous, bool current) {
-        removeBotButton.SetActive(isBot.Value);
+        removeBotButton.SetActive(current);
+    }
+
+    public void OnIsReadyChanged(bool previous, bool current) {
+        isReadyIcon.SetActive(current);
     }
 }

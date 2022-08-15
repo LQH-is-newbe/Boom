@@ -4,12 +4,13 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class AIPredictionGenerator {
+    // TODO: destroyable explode period
     private readonly List<AIPredictionEvent> events = new();
     //private readonly AIPrediction predictionTemplate = new();
     private readonly Map<MapBlock> mapSnapshot;
     private readonly Dictionary<int, Character> charactersSnapshot;
 
-    public AIPredictionGenerator(float shiftTime, List<AIPredictionEvent> nextEvents = null) {
+    public AIPredictionGenerator(float shiftTime, float envShiftTime, List<AIPredictionEvent> nextEvents = null) {
         mapSnapshot = new(Static.mapSize);
         for (int x = 0; x < Static.mapSize; ++x) {
             for (int y = 0; y < Static.mapSize; ++y) {
@@ -22,17 +23,17 @@ public class AIPredictionGenerator {
                     Bomb bomb = (Bomb)block.element;
                     Bomb bombSnapshot = (Bomb)blockSnapshot.element;
                     BombController bombController = (BombController)Static.controllers[bomb];
-                    events.Add(new(bombSnapshot.MapBlock, AIPredictionEvent.Type.BombExplode, bombController.TimeToExplode - shiftTime, bombSnapshot));
+                    events.Add(new(bombSnapshot.MapBlock, AIPredictionEvent.Type.BombExplode, bombController.TimeToExplode - shiftTime + envShiftTime, bombSnapshot));
                 }
                 for (int i = 0; i < block.explodes.Count; ++i) {
                     Explode explode = block.explodes[i];
-                    blockSnapshot.explodes.Add(explode);
+                    blockSnapshot.explodes.Add(explode.Copy());
                     Explode explodeSnapshot = blockSnapshot.explodes[i];
                     ExplodeController explodeController = (ExplodeController)Static.controllers[explode];
                     if (explodeController.TimeToExplode > 0) {
-                        events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExplode - shiftTime, explodeSnapshot));
+                        events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExplode - shiftTime + envShiftTime, explodeSnapshot));
                     }
-                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy - shiftTime, explodeSnapshot));
+                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy - shiftTime + envShiftTime, explodeSnapshot));
                 }
             }
         }
@@ -271,6 +272,10 @@ public class AIPredictionMapBlock {
         }
         return result;
     }
+
+    public override string ToString() {
+        return explodes.ToString();
+    }
 }
 
 public struct TimedValue<T> {
@@ -315,6 +320,15 @@ public struct TimedValue<T> {
     public void ChangeOnLastValue(float time, Func<T, T> NewValue) {
         Add(time, NewValue(LastValue()));
     }
+
+    public override string ToString() {
+        string result = "(init:" + initialValue + ") ";
+        if (timeValuePairs == null) return result;
+        foreach (TimeValuePair<T> timeValuePair in timeValuePairs) {
+            result += timeValuePair + " ";
+        }
+        return result;
+    }
 }
 
 public struct TimeValuePair<T> {
@@ -324,5 +338,9 @@ public struct TimeValuePair<T> {
     public TimeValuePair(float time, T value) {
         this.time = time;
         this.value = value;
+    }
+
+    public override string ToString() {
+        return "(" + time + "," + value + ")";
     }
 }

@@ -45,5 +45,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   uiPrefab: {fileID: 2928458788165395666, guid: f506e222cb81e1c4d99767336b5174eb, type: 3}
-  characterPrefab: {fileID: 8299502627447073643, guid: d1932663af4623641a7e1d4b8d280422, type: 3}
-  characterAvatarHealthPrefab: {fileID: 4828160293930505397, guid: b554812bfe541fe46a5d0584d6f8af54, type: 3}
+  networkVariablesPrefab: {fileID: 4040172051495478733, guid: d0f0795aa763d6c4baa4816b22b6c042, type: 3}

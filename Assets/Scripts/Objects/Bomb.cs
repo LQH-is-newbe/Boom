@@ -18,6 +18,7 @@ public class Bomb: MapElement {
     }
 
     public void Create() {
+        Character.characters[createrId].BombNum++;
         Static.mapBlocks[MapBlock].element = this;
         GameObject bomb = UnityEngine.Object.Instantiate(bombPrefab, new(MapBlock.x, MapBlock.y), Quaternion.identity);
         BombController controller = bomb.GetComponent<BombController>();
@@ -35,8 +36,11 @@ public class Bomb: MapElement {
 
 
     public void Trigger() {
+        Character creater;
+        if (Character.characters.TryGetValue(createrId, out creater)) {
+            creater.BombNum--;
+        }
         ((BombController)Static.controllers[this]).Destroy();
-        Character.characters[createrId].BombNum--;
         Static.mapBlocks[MapBlock].element = null;
         Static.controllers.Remove(this);
         Explode explode = new(MapBlock, BombPower, Direction.None);
@@ -44,10 +48,13 @@ public class Bomb: MapElement {
     }
 
     public void TriggerPrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
+        AIPredictionCharacter creater;
+        if (prediction.characters.TryGetValue(createrId, out creater)) {
+            creater.bombNum.ChangeOnLastValue(time, (bombNum) => { return bombNum - 1; }); ;
+        }
         AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
         Explode explode = new Explode(MapBlock, BombPower, Direction.None);
         predictionMapBlock.AddExplodeStart(time);
-        prediction.characters[CreaterId].bombNum.ChangeOnLastValue(time, (bombNum) => { return bombNum - 1; });
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + Explode.explodeInterval, explode), time + Explode.explodeInterval);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + explode.ExistTime, explode), time + explode.ExistTime);
         predictionMapBlock.ChangeBomb(null, time);

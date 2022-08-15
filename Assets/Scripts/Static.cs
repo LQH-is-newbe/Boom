@@ -10,8 +10,6 @@ public class Static {
     public static string passcode;
     public static StringContent roomIdJson;
     public static int mapIndex = 0;
-    public static float explodeInterval = 0.05f;
-    public static float explodeEndExistTime = 0.3f;
     public static List<Collectable> collectables = new();
     public static List<Destroyable> destroyables = new();
     public static int totalDestroyableNum;
@@ -26,6 +24,7 @@ public class Static {
     public static string[] characters = { "Trinny", "Mimmo", "Nou", "Duu" };
     public static string[] maps = { "Halloween", "Winter" };
     public static Vector2 characterColliderSize = new(0.6f, 0.4f);
+    public static NetworkVariables networkVariables;
 
     public static bool singlePlayer = false;
 }

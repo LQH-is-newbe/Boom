@@ -12,8 +12,8 @@ public class Block : MonoBehaviour {
         collider.offset = new Vector2(xLen / 2f, yLen / 2f);
         collider.usedByComposite = true;
         if (NetworkManager.Singleton.IsServer) {
-            bool isDestroyable = GetComponent<DestroyableController>() != null;
-            if (isDestroyable) {
+            DestroyableController destroyableController = GetComponent<DestroyableController>();
+            if (destroyableController != null) {
                 gameObject.tag = "Destroyable";
             } else {
                 gameObject.tag = "NoneDestroyable";
@@ -23,9 +23,10 @@ public class Block : MonoBehaviour {
             for (int dx = 0; dx < xLen; ++dx) {
                 for (int dy = 0; dy < yLen; ++dy) {
                     Vector2Int mapBlock = new(x + dx, y + dy);
-                    if (isDestroyable) {
+                    if (destroyableController != null) {
                         Destroyable destroyable = new Destroyable(mapBlock);
                         destroyable.Create(GetComponent<DestroyableController>());
+                        destroyableController.destroyable = destroyable;
                     } else {
                         NoneDestroyable noneDestroyable = new(mapBlock);
                         noneDestroyable.Create();

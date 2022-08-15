@@ -6,12 +6,15 @@ using Unity.Collections;
 
 public class CharacterController : NetworkBehaviour {
     private NetworkVariable<FixedString64Bytes> characterName = new();
-    private NetworkVariable<bool> alive = new(true);
+    public NetworkVariable<bool> alive = new(true);
     private NetworkVariable<bool> isNPC = new();
     public NetworkVariable<float> speed = new(Character.initialSpeed);
+    private NetworkVariable<int> id = new();
 
     [SerializeField]
     private GameObject display;
+    [SerializeField]
+    private SpriteRenderer circle;
 
     private Rigidbody2D rigidbody2d;
     private NetworkAnimator networkAnimator;
@@ -23,17 +26,22 @@ public class CharacterController : NetworkBehaviour {
     public Character character;
 
     private void Update() {
-        if (!IsServer) return;
-        if (invincibleTimer > 0) {
-            invincibleTimer -= Time.deltaTime;
-            if (invincibleTimer <= 0) {
-                character.IsInvincible = false;
-            } 
+        if (IsOwner && transform.hasChanged) {
+            if (IsServer) MoveServerCall(transform.position.x, transform.position.y);
+            else MoveServerRpc(transform.position.x, transform.position.y);
         }
-        if (deadTimer > 0) {
-            deadTimer -= Time.deltaTime;
-            if (deadTimer <= 0) {
-                Destroy(gameObject);
+        if (IsServer) {
+            if (invincibleTimer > 0) {
+                invincibleTimer -= Time.deltaTime;
+                if (invincibleTimer <= 0) {
+                    character.IsInvincible = false;
+                }
+            }
+            if (deadTimer > 0) {
+                deadTimer -= Time.deltaTime;
+                if (deadTimer <= 0) {
+                    Destroy(gameObject);
+                }
             }
         }
     }
@@ -53,6 +61,7 @@ public class CharacterController : NetworkBehaviour {
             gameObject.tag = "Character";
         }
         if (IsClient) {
+            circle.color = Character.characterColors[id.Value];
             animator = display.GetComponent<Animator>();
             display.transform.localPosition = new Vector2(0, -Static.characterColliderSize.y / 2);
             AnimatorOverrideController animatorOverrideController = new AnimatorOverrideController(animator.runtimeAnimatorController);
@@ -71,15 +80,13 @@ public class CharacterController : NetworkBehaviour {
         this.character = character;
         characterName.Value = new FixedString64Bytes(character.CharacterName);
         isNPC.Value = character.IsNPC;
+        id.Value = character.Id;
         this.characterAvatarHealth = characterAvatarHealth;
     }
 
     public void Move(Vector2 positionChange) {
-        if (!alive.Value || !IsOwner) return;
         if (positionChange.magnitude != 0) {
             rigidbody2d.MovePosition(rigidbody2d.position + positionChange);
-            if (IsServer) MoveServerCall(rigidbody2d.position.x, rigidbody2d.position.y);
-            else MoveServerRpc(rigidbody2d.position.x, rigidbody2d.position.y);
             if (positionChange.x < 0) {
                 networkAnimator.SetAnimation("Direction", -1f);
             } else if (positionChange.x > 0) {
@@ -92,7 +99,6 @@ public class CharacterController : NetworkBehaviour {
     }
 
     public void PutBomb() {
-        if (!alive.Value || !IsOwner) return;
         if (IsServer) PutBombServerCall();
         else PutBombServerRpc();
     }

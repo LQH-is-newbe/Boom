@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Destroyable: MapElement {
+    public static readonly Sprite explodeSprite = Resources.Load<Sprite>("Destroyable/Sprite/Destroyed");
+
+    public Collectable.Type collectableType;
+    public bool exploding = false;
+
     public Destroyable(Vector2Int mapBlock): base(mapBlock) { }
 
     public void Create(DestroyableController controller) {
@@ -13,11 +18,14 @@ public class Destroyable: MapElement {
     }
 
     public void Destroy() {
+        exploding = true;
         ((DestroyableController)Static.controllers[this]).DestroyBlock();
+    }
+
+    public void RemoveBlock() {
         Static.mapBlocks[MapBlock].element = null;
         Static.destroyables.Remove(this);
         Static.controllers.Remove(this);
-        Collectable.Type collectableType = Collectable.Creater.RandomCollectable();
         if (collectableType != null) {
             Collectable collectable = new(MapBlock, collectableType);
             collectable.Create();

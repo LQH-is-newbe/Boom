@@ -6,57 +6,99 @@ using UnityEngine;
 
 public class Collectable: MapElement {
     public class Type {
-        private string name;
-        private float prob;
-        private System.Action<Character> apply;
+        private readonly string name;
+        private readonly float prob;
+        private readonly bool isAttribute;
+        private readonly System.Action<Character> apply;
 
-        public Type(string name, float prob, System.Action<Character> apply) {
+        public Type(string name, float prob, bool isAttribute, System.Action<Character> apply) {
             this.name = name;
             this.prob = prob;
+            this.isAttribute = isAttribute;
             this.apply = apply;
         }
 
         public float Prob { get { return prob; } }
         public string Name { get { return name; } }
         public void Apply(Character collecter) {
+            if (isAttribute) {
+                if (collecter.collectables.ContainsKey(this)) {
+                    collecter.collectables[this]++;
+                } else {
+                    collecter.collectables[this] = 1;
+                }
+            }
             apply(collecter);
         }
     }
 
-    public class Creater {
-        private static Type[] types = {
-            new Type("Speed", 0.8f, collecter => collecter.Speed += 0.6f),
-            new Type("BombPower", 1.0f, collecter => collecter.BombPower++),
-            new Type("BombCapacity", 1.0f, collecter => collecter.BombCapacity++),
-            new Type("Health", 0.36f, collecter => collecter.ChangeHealth(1))
-        };
-        private static float probSum;
-        private static float[] cumulativeProb;
-        private static float createProb = 0.4f;
+    private static readonly Type[] types = {
+        new Type("Speed", 0.8f, true, collecter => collecter.Speed += 0.6f),
+        new Type("BombPower", 1.0f, true, collecter => collecter.BombPower++),
+        new Type("BombCapacity", 1.0f, true, collecter => collecter.BombCapacity++),
+        new Type("Health", 0.36f, false, collecter => collecter.ChangeHealth(1))
+    };
 
-        static Creater() {
-            cumulativeProb = new float[types.Length];
-            probSum = 0;
-            for (int i = 0; i < types.Length; ++i) {
-                probSum += types[i].Prob;
-                cumulativeProb[i] = probSum;
-            }
+    private static readonly float createProb = 0.5f;
+
+    public static void AssignDestroyableDrops() {
+        float[] cumulativeProb = new float[types.Length];
+        float probSum = 0;
+        for (int i = 0; i < types.Length; ++i) {
+            probSum += types[i].Prob;
+            cumulativeProb[i] = probSum;
         }
-
-        public static Type RandomCollectable() {
-            if (Random.RandomFloat() < createProb) {
-                float rand = Random.RandomFloat() * probSum;
-                for (int i = 0; i < types.Length; ++i) {
-                    if (rand < cumulativeProb[i]) {
-                        return types[i];
-                    }
+        for (int i = 0; i < types.Length; ++i) {
+            cumulativeProb[i] /= probSum / createProb;
+            Debug.Log(cumulativeProb[i]);
+        }
+        int[] randPermutation = Random.RandomPermutation(Static.totalDestroyableNum, Static.totalDestroyableNum);
+        for (int i = 0; i < Static.totalDestroyableNum; ++i) {
+            float randFloat = (float)randPermutation[i] / Static.totalDestroyableNum;
+            for (int j = 0; j < types.Length; ++j) {
+                if (randFloat < cumulativeProb[j]) {
+                    Static.destroyables[i].collectableType = types[j];
+                    break;
                 }
             }
-            return null;
         }
     }
 
-    private static GameObject collectablePrefab = Resources.Load<GameObject>("Collectable/Collectable");
+    public static void CreateCharacterDeadDrops(Character character) {
+        // TODO: collectable overlap with bomb or collectable
+        Dictionary<Type, int> collectables = character.collectables;
+        int emptyBlockCount = 0;
+        for (int x = 0; x < Static.mapSize; ++x) {
+            for (int y = 0; y < Static.mapSize; ++y) {
+                if (Static.mapBlocks[new(x, y)].element == null) emptyBlockCount++;
+            }
+        }
+        int countSum = 0;
+        Dictionary<Type, int> cumulativeCount = new();
+        foreach (Type type in collectables.Keys) {
+            countSum += collectables[type];
+            cumulativeCount[type] = countSum;
+        }
+        int[] randPermutation = Random.RandomPermutation(emptyBlockCount, emptyBlockCount);
+        int i = 0;
+        for (int x = 0; x < Static.mapSize; ++x) {
+            for (int y = 0; y < Static.mapSize; ++y) {
+                Vector2Int mapBlock = new(x, y);
+                if (Static.mapBlocks[mapBlock].element == null) {
+                    foreach (Type type in collectables.Keys) {
+                        if (randPermutation[i] < cumulativeCount[type]) {
+                            Collectable collectable = new(mapBlock, type);
+                            collectable.Create(true, new(character.Position.x - 0.5f, character.Position.y - 0.5f));
+                            break;
+                        }
+                    }
+                    ++i;
+                }
+            }
+        }
+    }
+
+    private static readonly GameObject collectablePrefab = Resources.Load<GameObject>("Collectable/Collectable");
 
     public Type type;
 
@@ -64,15 +106,24 @@ public class Collectable: MapElement {
         this.type = type;
     }
 
-    public void Create() {
-        Static.mapBlocks[MapBlock].element = this;
-        GameObject collectable = Object.Instantiate(collectablePrefab, new(MapBlock.x, MapBlock.y), Quaternion.identity);
+    public void Create(bool hasSource = false, Vector2 source = default) {
+        Vector2 initMapBlock = hasSource ? source : new(MapBlock.x, MapBlock.y);
+        GameObject collectable = Object.Instantiate(collectablePrefab, initMapBlock, Quaternion.identity);
         CollectableController controller = collectable.GetComponent<CollectableController>();
         Static.controllers[this] = controller;
         controller.spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
         controller.collectable = this;
         collectable.GetComponent<NetworkObject>().Spawn(true);
+        if (hasSource) {
+            controller.Move(new(MapBlock.x, MapBlock.y));
+        } else {
+            controller.TakeBlock();
+        }
+    }
+
+    public void TakeBlock() {
         Static.collectables.Add(this);
+        Static.mapBlocks[MapBlock].element = this;
     }
 
     public void Destroy() {
