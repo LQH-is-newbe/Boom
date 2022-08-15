@@ -5,4 +5,8 @@ using Unity.Netcode;
 
 public class NetworkVariables : NetworkBehaviour {
     public NetworkVariable<bool> gameRunning = new();
+
+    public override void OnNetworkSpawn() {
+        Static.networkVariables = this;
+    }
 }
