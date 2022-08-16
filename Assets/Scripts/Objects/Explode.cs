@@ -100,10 +100,9 @@ public class Explode {
 
     private void CreateNextExplode(Action<Explode> OnExplodeCreate) {
         if (powerLeft <= 1) return;
-        if (direction == Direction.None) {
-            Direction[] directions = new Direction[] { Direction.Left, Direction.Right, Direction.Up, Direction.Down };
-            foreach (Direction direction in directions) {
-                CreateNextExplode(direction, OnExplodeCreate);
+        if (direction == Direction.zero) {
+            for (int i = 0; i < 4; ++i) {
+                CreateNextExplode(Direction.directions[i], OnExplodeCreate);
             }
         } else {
             CreateNextExplode(direction, OnExplodeCreate);
@@ -111,7 +110,7 @@ public class Explode {
     }
 
     private void CreateNextExplode(Direction direction, Action<Explode> onExplodeCreate) {
-        Vector2Int newPos = mapBlock + Vector2Int.directions[(int)direction];
+        Vector2Int newPos = mapBlock + direction.Vector2Int;
         if (newPos.x < 0 || newPos.x >= Static.mapSize || newPos.y < 0 || newPos.y >= Static.mapSize) return;
         onExplodeCreate(new(newPos, powerLeft - 1, direction));
     }

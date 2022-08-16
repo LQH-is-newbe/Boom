@@ -11,8 +11,8 @@ public class Transition : MonoBehaviour {
     private void Update() {
         if (spawnTimer <= 0) {
             GameObject uiWalk = Instantiate(uiWalkPrefab);
-            uiWalk.GetComponent<UIWalk>().Init(Static.characters[currentCharacterIndex++]);
-            if (currentCharacterIndex == Static.characters.Length) currentCharacterIndex = 0;
+            uiWalk.GetComponent<UIWalk>().Init(Character.names[currentCharacterIndex++]);
+            if (currentCharacterIndex == Character.names.Length) currentCharacterIndex = 0;
             uiWalk.transform.SetParent(gameObject.transform);
             spawnTimer = spawnInterval;
         }

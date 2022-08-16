@@ -12,6 +12,11 @@ public class AI {
 
     private int playerId;
 
+    public static Vector2Int MapPosToMapBlock(Vector2 mapPos) {
+        int x = Mathf.FloorToInt(mapPos.x), y = Mathf.FloorToInt(mapPos.y);
+        return new(x, y);
+    }
+
     public static Vector2Int PosToMapBlock(Vector2Int pos) {
         int x = pos.x >= 0 ? pos.x / 2 : -1;
         int y = pos.y >= 0 ? pos.y / 2 : -1;
@@ -21,11 +26,11 @@ public class AI {
     public static Vector2 PosToMapPos(Vector2Int pos) {
         Vector2Int mapBlock = PosToMapBlock(pos);
         float mapPosX = mapBlock.x;
-        if (pos.x % 2 == 0) mapPosX += preventDis + Static.characterColliderSize.x / 2;
-        else mapPosX += 1 - preventDis - Static.characterColliderSize.x / 2;
+        if (pos.x % 2 == 0) mapPosX += preventDis + Character.colliderHalfSize.x;
+        else mapPosX += 1 - preventDis - Character.colliderHalfSize.x;
         float mapPosY = mapBlock.y;
-        if (pos.y % 2 == 0) mapPosY += preventDis + Static.characterColliderSize.y / 2;
-        else mapPosY += 1 - preventDis - Static.characterColliderSize.y / 2;
+        if (pos.y % 2 == 0) mapPosY += preventDis + Character.colliderHalfSize.y;
+        else mapPosY += 1 - preventDis - Character.colliderHalfSize.y;
         return new Vector2(mapPosX, mapPosY);
     }
 
@@ -159,7 +164,7 @@ public class AI {
             AIPredictionMapBlock curAiMapBlock = map[curMapBlock];
 
             for (int i = 0; i < 4; ++i) {
-                Vector2Int nextPos = cur.pos + Vector2Int.directions[i];
+                Vector2Int nextPos = cur.pos + Direction.directions[i].Vector2Int;
                 Vector2Int nextMapBlock = PosToMapBlock(nextPos);
 
                 if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
@@ -203,7 +208,7 @@ public class AI {
         List<AIPredictionEvent> additionalEvents = new();
         DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
         Debug.Log("instructions: " + InstructionsToString(instructions));
-        Debug.Log("additional events: " + EventsToString(additionalEvents));
+        //Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
         return Task.FromResult<Tuple<int, List<Instruction>, List<AIPredictionEvent>>>(new(decisionId, instructions, additionalEvents));
@@ -244,7 +249,7 @@ public class AI {
             (node) => {
                 Vector2Int curMapBlock = PosToMapBlock(node.pos);
                 for (int i = 0; i < 4; ++i) {
-                    Vector2Int nextMapBlock = PosToMapBlock(node.pos + Vector2Int.directions[i]);
+                    Vector2Int nextMapBlock = PosToMapBlock(node.pos + Direction.directions[i].Vector2Int);
                     if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
                     if (map[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.explodeInterval)) {
                         if (TestPutBomb(node)) return true;

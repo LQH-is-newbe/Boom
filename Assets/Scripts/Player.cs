@@ -24,7 +24,7 @@ public class Player {
             if (!players.ContainsKey(i)) {
                 if (isNPC) {
                     player.name = "Bot " + (i + 1).ToString();
-                    player.characterName = Static.characters[Random.RandomInt(Static.characters.Length)];
+                    player.characterName = Character.names[Random.RandomInt(Character.names.Length)];
                     player.IsReady = true;
                 } else {
                     clientPlayers[clientId] = player;

@@ -5,6 +5,9 @@ using Unity.Netcode;
 using Unity.Collections;
 
 public class CharacterController : NetworkBehaviour {
+    private const float blockedErrorStart = 0.2f;
+    private const float blockedErrorEnd = 0.5f;
+
     private NetworkVariable<FixedString64Bytes> characterName = new();
     public NetworkVariable<bool> alive = new(true);
     private NetworkVariable<bool> isNPC = new();
@@ -16,7 +19,6 @@ public class CharacterController : NetworkBehaviour {
     [SerializeField]
     private SpriteRenderer circle;
 
-    private Rigidbody2D rigidbody2d;
     private NetworkAnimator networkAnimator;
     private Animator animator;
     private CharacterAvatarHealth characterAvatarHealth;
@@ -26,10 +28,6 @@ public class CharacterController : NetworkBehaviour {
     public Character character;
 
     private void Update() {
-        if (IsOwner && transform.hasChanged) {
-            if (IsServer) MoveServerCall(transform.position.x, transform.position.y);
-            else MoveServerRpc(transform.position.x, transform.position.y);
-        }
         if (IsServer) {
             if (invincibleTimer > 0) {
                 invincibleTimer -= Time.deltaTime;
@@ -48,9 +46,8 @@ public class CharacterController : NetworkBehaviour {
 
     public override void OnNetworkSpawn() {
         networkAnimator = display.GetComponent<NetworkAnimator>();
-        GetComponent<BoxCollider2D>().size = Static.characterColliderSize;
+        GetComponent<BoxCollider2D>().size = Character.colliderHalfSize * 2;
         if (IsOwner) {
-            rigidbody2d = GetComponent<Rigidbody2D>();
             if (isNPC.Value) {
                 gameObject.AddComponent<BotController>();
             } else {
@@ -61,9 +58,9 @@ public class CharacterController : NetworkBehaviour {
             gameObject.tag = "Character";
         }
         if (IsClient) {
-            circle.color = Character.characterColors[id.Value];
+            circle.color = Character.colors[id.Value];
             animator = display.GetComponent<Animator>();
-            display.transform.localPosition = new Vector2(0, -Static.characterColliderSize.y / 2);
+            display.transform.localPosition = new Vector2(0, -Character.colliderHalfSize.y);
             AnimatorOverrideController animatorOverrideController = new AnimatorOverrideController(animator.runtimeAnimatorController);
             animatorOverrideController["Dead"] = Resources.Load<AnimationClip>("Characters/" + characterName.Value.Value + "/Animations/Dead");
             animatorOverrideController["Hit_left"] = Resources.Load<AnimationClip>("Characters/" + characterName.Value.Value + "/Animations/Hit_left");
@@ -84,17 +81,69 @@ public class CharacterController : NetworkBehaviour {
         this.characterAvatarHealth = characterAvatarHealth;
     }
 
-    public void Move(Vector2 positionChange) {
-        if (positionChange.magnitude != 0) {
-            rigidbody2d.MovePosition(rigidbody2d.position + positionChange);
-            if (positionChange.x < 0) {
-                networkAnimator.SetAnimation("Direction", -1f);
-            } else if (positionChange.x > 0) {
-                networkAnimator.SetAnimation("Direction", 1f);
-            }
-            networkAnimator.SetAnimation("Moving", true);
-        } else {
+    public void Move(Direction direction, float positionChangeDistance = 0) {
+        if (direction == Direction.zero) {
             networkAnimator.SetAnimation("Moving", false);
+            return;
+        }
+        networkAnimator.SetAnimation("Moving", true);
+        Vector2 curMapPos = transform.position;
+        Vector2 newMapPos = curMapPos + direction.Vector2 * positionChangeDistance;
+        bool canGo = true;
+        foreach (Vector2 vertexPos in Character.directionVertices[direction.index]) {
+            Vector2 newVertexMapPos = newMapPos + vertexPos;
+            if (newVertexMapPos.x < 0 || newVertexMapPos.x > Static.mapSize || newVertexMapPos.y < 0 || newVertexMapPos.y > Static.mapSize) return;
+            Vector2 curVertexMapPos = curMapPos + vertexPos;
+            Vector2Int curVertexMapBlock = AI.MapPosToMapBlock(curVertexMapPos);
+            Vector2Int newVertexMapBlock = AI.MapPosToMapBlock(newVertexMapPos);
+            if (!curVertexMapBlock.Equals(newVertexMapBlock) && Static.hasObstacle[newVertexMapBlock]) {
+                canGo = false;
+            }
+        }
+        Vector2 positionChange;
+        if (canGo) {
+            positionChange = direction.Vector2 * positionChangeDistance;
+        } else {
+            Vector2 newBoundaryMidPoint = newMapPos + Character.boundaryMidPoints[direction.index];
+            Vector2Int newMapBlock = AI.MapPosToMapBlock(newBoundaryMidPoint);
+            Vector2Int newNeighborMapBlock;
+            if (direction.horizontal) {
+                if (newBoundaryMidPoint.y > newMapBlock.y + 0.5f) newNeighborMapBlock = newMapBlock + Vector2Int.up;
+                else newNeighborMapBlock = newMapBlock + Vector2Int.down;
+            } else {
+                if (newBoundaryMidPoint.x > newMapBlock.x + 0.5f) newNeighborMapBlock = newMapBlock + Vector2Int.right;
+                else newNeighborMapBlock = newMapBlock + Vector2Int.left;
+            }
+            if (newNeighborMapBlock.x < 0 || newNeighborMapBlock.x >= Static.mapSize || newNeighborMapBlock.y < 0 || newNeighborMapBlock.y >= Static.mapSize) return;
+            // So there must be two blocks
+            if (Static.hasObstacle[newMapBlock] && Static.hasObstacle[newNeighborMapBlock]) return;
+            Vector2Int nonEmptyBlock;
+            Vector2Int emptyBlock;
+            if (Static.hasObstacle[newMapBlock]) {
+                nonEmptyBlock = newMapBlock;
+                emptyBlock = newNeighborMapBlock;
+            } else {
+                nonEmptyBlock = newNeighborMapBlock;
+                emptyBlock = newMapBlock;
+            }
+            float shiftToMidPoint = Mathf.Abs(direction.horizontal ? newBoundaryMidPoint.y - nonEmptyBlock.y - 0.5f : newBoundaryMidPoint.x - nonEmptyBlock.x - 0.5f);
+            float distanceMultiplier;
+            if (shiftToMidPoint < blockedErrorStart) return;
+            else if (shiftToMidPoint < blockedErrorEnd) distanceMultiplier = (shiftToMidPoint - blockedErrorStart) / (blockedErrorEnd - blockedErrorStart);
+            else distanceMultiplier = 1;
+            Vector2Int curMapBlock = AI.MapPosToMapBlock(curMapPos);
+            Vector2Int curNeighborMapBlock = direction.horizontal ? new(curMapBlock.x, newNeighborMapBlock.y) : new(newNeighborMapBlock.x, curMapBlock.y);
+            if (Static.hasObstacle[curNeighborMapBlock]) return;
+            positionChange = (emptyBlock - nonEmptyBlock) * positionChangeDistance * distanceMultiplier;
+        }
+        Vector2 decidedNewMapPos = curMapPos + positionChange;
+        transform.position = decidedNewMapPos;
+        if (IsServer) MoveServerCall(decidedNewMapPos.x, decidedNewMapPos.y);
+        else MoveServerRpc(decidedNewMapPos.x, decidedNewMapPos.y);
+        if (positionChange.x < 0 ) {
+            networkAnimator.SetAnimation("Direction", -1f);
+        } else if (positionChange.x > 0) {
+            networkAnimator.SetAnimation("Direction", 1f);
         }
     }
 

@@ -16,10 +16,10 @@ public class CharacterSelection : NetworkBehaviour {
 
     // server call
     public void Init() {
-        for (int i = 0; i < Static.characters.Length; i++) {
+        for (int i = 0; i < Character.names.Length; i++) {
             GameObject characterSelectionUnit = Instantiate(characterSelectionUnitPrefab);
             CharacterSelectionUnit controller = characterSelectionUnit.GetComponent<CharacterSelectionUnit>();
-            controller.characterName.Value = new FixedString64Bytes(Static.characters[i]);
+            controller.characterName.Value = new FixedString64Bytes(Character.names[i]);
             characterSelectionUnit.GetComponent<NetworkObject>().Spawn();
             
         }
@@ -96,6 +96,13 @@ public class CharacterSelection : NetworkBehaviour {
         }
         //TransitionClientRpc();
         if (!Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/start-game", Static.roomIdJson);
+        ResetGameStateClientRpc();
         NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
+    }
+
+    // Client RPC
+    [ClientRpc]
+    private void ResetGameStateClientRpc() {
+        Static.hasObstacle.Clear();
     }
 }

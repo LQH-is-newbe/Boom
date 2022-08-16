@@ -7,7 +7,6 @@ using System;
 public class BotController : MonoBehaviour {
     private AI ai;
     private CharacterController characterController;
-    private Rigidbody2D rigidbody2d;
     private List<Instruction> currentInstructions = new();
     private Instruction currentInstruction;
     private List<Instruction> nextInstructions;
@@ -17,7 +16,6 @@ public class BotController : MonoBehaviour {
 
     private void Awake() {
         characterController = GetComponent<CharacterController>();
-        rigidbody2d = GetComponent<Rigidbody2D>();
         ai = new(characterController.character.Id);
         int x = (int)Mathf.Floor(characterController.transform.position.x / 0.5f);
         int y = (int)Mathf.Floor(characterController.transform.position.y / 0.5f);
@@ -26,8 +24,7 @@ public class BotController : MonoBehaviour {
 
     private void FixedUpdate() {
         if (!Static.networkVariables.gameRunning.Value || !characterController.alive.Value) return;
-        Vector2 newPos = RunInstruction(Time.fixedDeltaTime, rigidbody2d.position);
-        characterController.Move(newPos - rigidbody2d.position);
+        RunInstruction(Time.fixedDeltaTime);
     }
 
     private bool IsValidInstruction(Instruction instruction) {
@@ -55,7 +52,7 @@ public class BotController : MonoBehaviour {
         nextEvents = null;
     }
 
-    private Vector2 RunInstruction(float time, Vector2 mapPos) {
+    private void RunInstruction(float time) {
         if (currentInstruction == null) {
             if (currentInstructions.Count == 0) {
                 if (nextInstructions != null) {
@@ -75,6 +72,7 @@ public class BotController : MonoBehaviour {
         }
         float timeLeft = 0;
         if (currentInstruction.waitTime > 0) {
+            characterController.Move(Direction.zero);
             float waitTime = currentInstruction.waitTime;
             if (waitTime > time) {
                 currentInstruction.waitTime -= time;
@@ -88,24 +86,30 @@ public class BotController : MonoBehaviour {
             timeLeft = time;
         } else {
             Vector2Int targetPos = currentInstruction.pos;
+            Vector2Int posChange = targetPos - pos;
+
+            Direction direction;
+            if (posChange.x == -1) direction = Direction.left;
+            else if (posChange.x == 1) direction = Direction.right;
+            else if (posChange.y == 1) direction = Direction.up;
+            else /* down */ direction = Direction.down;
+
             Vector2 targetMapPos = AI.PosToMapPos(targetPos);
-            Vector2 mapPosShouldChange = (targetPos - pos) * (characterController.speed.Value * time);
-            Vector2 mapPosCanChange = targetMapPos - mapPos;
-            if (mapPosShouldChange.sqrMagnitude > mapPosCanChange.sqrMagnitude) {
+            float mapPosShouldChangeDistance = characterController.speed.Value * time;
+            float mapPosCanChangeDistance = Mathf.Abs(direction.horizontal ? targetMapPos.x - transform.position.x : targetMapPos.y - transform.position.y);
+            if (mapPosShouldChangeDistance > mapPosCanChangeDistance) {
                 currentInstruction = null;
                 pos = targetPos;
-                mapPos = targetMapPos;
-                timeLeft = time - mapPosCanChange.magnitude / characterController.speed.Value;
+                characterController.Move(direction, mapPosCanChangeDistance);
+                timeLeft = time - mapPosCanChangeDistance / characterController.speed.Value;
             } else {
-                mapPos += mapPosShouldChange;
+                characterController.Move(direction, mapPosShouldChangeDistance);
             }
         }
 
         if (currentInstruction == null) {
-            mapPos = RunInstruction(timeLeft, mapPos);
+            RunInstruction(timeLeft);
         }
-
-        return mapPos;
     }
 }
 

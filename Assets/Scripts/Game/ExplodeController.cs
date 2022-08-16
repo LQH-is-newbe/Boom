@@ -47,7 +47,7 @@ public class ExplodeController : NetworkBehaviour {
         if (IsServer) {
             timer = explode.ExistTime;
             string path = "Explode/Sprites/";
-            if (explode.Direction == Direction.None) {
+            if (explode.Direction == Direction.zero) {
                 path += "center";
             } else {
                 if (explode.PowerLeft == 1) {
@@ -56,9 +56,9 @@ public class ExplodeController : NetworkBehaviour {
                     path += "middle";
                 }
                 rotateAngle.Value = 0;
-                if (explode.Direction == Direction.Left) rotateAngle.Value = 90f;
-                else if (explode.Direction == Direction.Down) rotateAngle.Value = 180f;
-                else if (explode.Direction == Direction.Right) rotateAngle.Value = 270f;
+                if (explode.Direction == Direction.left) rotateAngle.Value = 90f;
+                else if (explode.Direction == Direction.down) rotateAngle.Value = 180f;
+                else if (explode.Direction == Direction.right) rotateAngle.Value = 270f;
             }
             spritePath.Value = new FixedString64Bytes(path);
         }

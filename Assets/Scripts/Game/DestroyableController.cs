@@ -10,6 +10,14 @@ public class DestroyableController : NetworkBehaviour {
     private float explodeTimer;
     public Destroyable destroyable;
 
+    //public override void OnNetworkSpawn() {
+    //    Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = true;
+    //}
+
+    public override void OnDestroy() {
+        Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = false;
+    }
+
     private void Update() {
         if (!IsServer) return;
         if (explodeTimer > 0) {

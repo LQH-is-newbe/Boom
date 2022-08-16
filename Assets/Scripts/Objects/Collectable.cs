@@ -50,7 +50,6 @@ public class Collectable: MapElement {
         }
         for (int i = 0; i < types.Length; ++i) {
             cumulativeProb[i] /= probSum / createProb;
-            Debug.Log(cumulativeProb[i]);
         }
         int[] randPermutation = Random.RandomPermutation(Static.totalDestroyableNum, Static.totalDestroyableNum);
         for (int i = 0; i < Static.totalDestroyableNum; ++i) {

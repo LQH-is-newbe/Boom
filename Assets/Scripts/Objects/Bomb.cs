@@ -43,7 +43,7 @@ public class Bomb: MapElement {
         ((BombController)Static.controllers[this]).Destroy();
         Static.mapBlocks[MapBlock].element = null;
         Static.controllers.Remove(this);
-        Explode explode = new(MapBlock, BombPower, Direction.None);
+        Explode explode = new(MapBlock, BombPower, Direction.zero);
         explode.Create();
     }
 
@@ -53,7 +53,7 @@ public class Bomb: MapElement {
             creater.bombNum.ChangeOnLastValue(time, (bombNum) => { return bombNum - 1; }); ;
         }
         AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
-        Explode explode = new Explode(MapBlock, BombPower, Direction.None);
+        Explode explode = new Explode(MapBlock, BombPower, Direction.zero);
         predictionMapBlock.AddExplodeStart(time);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + Explode.explodeInterval, explode), time + Explode.explodeInterval);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + explode.ExistTime, explode), time + explode.ExistTime);

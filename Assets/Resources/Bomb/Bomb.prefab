@@ -67,7 +67,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 6928836753440590147}
-  - component: {fileID: 6928836753440590149}
   - component: {fileID: 8020133998046543801}
   - component: {fileID: -1168925228976561832}
   - component: {fileID: 367214132496081895}
@@ -96,32 +95,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!61 &6928836753440590149
-BoxCollider2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6928836753440590151}
-  m_Enabled: 1
-  m_Density: 1
-  m_Material: {fileID: 0}
-  m_IsTrigger: 1
-  m_UsedByEffector: 0
-  m_UsedByComposite: 0
-  m_Offset: {x: 0.5, y: 0.5}
-  m_SpriteTilingProperty:
-    border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.05, y: 0.05}
-    oldSize: {x: 1.0909091, y: 1.0909091}
-    newSize: {x: 1.0909091, y: 1.0909091}
-    adaptiveTilingThreshold: 0.5
-    drawMode: 1
-    adaptiveTiling: 0
-  m_AutoTiling: 0
-  serializedVersion: 2
-  m_Size: {x: 0.9, y: 0.9}
-  m_EdgeRadius: 0
 --- !u!114 &8020133998046543801
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -134,9 +107,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f62f79adba762f74ebbeebc2c0ac7b01, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  explodeTime: 2
   bombCollider: {fileID: 3427033733248533305}
-  explodePrefab: {fileID: 6665147975007062266, guid: 673104a960948e54a8d514ced0dca899, type: 3}
 --- !u!95 &-1168925228976561832
 Animator:
   serializedVersion: 4

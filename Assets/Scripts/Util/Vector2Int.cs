@@ -8,8 +8,8 @@ public struct Vector2Int {
     public static readonly Vector2Int right = new(1, 0);
     public static readonly Vector2Int up = new(0, 1);
     public static readonly Vector2Int down = new(0, -1);
-    public static readonly Vector2Int none = new(0, 0);
-    public static readonly Vector2Int[] directions = { left, right, up, down, none };
+    public static readonly Vector2Int zero = new(0, 0);
+    //public static readonly Vector2Int[] directions = { left, right, up, down, zero };
 
     public int x { get; set; }
     public int y { get; set; }
@@ -48,10 +48,10 @@ public struct Vector2Int {
     }
 }
 
-public enum Direction {
-    Left = 0,
-    Right = 1,
-    Up = 2,
-    Down = 3,
-    None = 4
-}
+//public enum Direction {
+//    Left = 0,
+//    Right = 1,
+//    Up = 2,
+//    Down = 3,
+//    None = 4
+//}

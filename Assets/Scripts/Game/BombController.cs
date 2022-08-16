@@ -14,6 +14,7 @@ public class BombController : NetworkBehaviour {
             gameObject.tag = "Bomb";
             timer = Bomb.explodeTime;
         }
+        Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = true;
         Vector2 position = transform.position;
         Collider2D[] charactersIn = Physics2D.OverlapAreaAll(
             position,
@@ -30,6 +31,10 @@ public class BombController : NetworkBehaviour {
         if (timer < 0) {
             bomb.Trigger();
         }
+    }
+
+    public override void OnDestroy() {
+        Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = false;
     }
 
     private void OnTriggerExit2D(Collider2D character) {

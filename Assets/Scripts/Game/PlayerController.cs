@@ -31,15 +31,17 @@ public class PlayerController : MonoBehaviour {
 
     private void FixedUpdate() {
         if (!Static.networkVariables.gameRunning.Value || !character.alive.Value) return;
-        float horizontal = 0f, vertical = 0f;
         if (pressingDirKeys.Count > 0) {
             float posChange = character.speed.Value * Time.deltaTime;
+            Direction direction;
             KeyCode dirKey = pressingDirKeys[^1];
-            if (dirKey == leftKey) horizontal = -posChange;
-            if (dirKey == rightKey) horizontal = posChange;
-            if (dirKey == upKey) vertical = posChange;
-            if (dirKey == downKey) vertical = -posChange;
+            if (dirKey == leftKey) direction = Direction.left;
+            else if (dirKey == rightKey) direction = Direction.right;
+            else if (dirKey == upKey) direction = Direction.up;
+            else /* down */ direction = Direction.down;
+            character.Move(direction, posChange);
+        } else {
+            character.Move(Direction.zero);
         }
-        character.Move(new Vector2(horizontal, vertical));
     }
 }

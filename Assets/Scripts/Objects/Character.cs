@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
@@ -11,17 +12,37 @@ public class Character {
     public const float timeInvincible = 2;
 
     public static readonly Dictionary<int, Character> characters = new();
-    public static readonly Vector2[] characterInitialPositions = {
-        AI.PosToMapPos(new Vector2Int(13, 23)),
-        AI.PosToMapPos(new Vector2Int(13, 19)),
+    public static readonly Vector2 colliderHalfSize = new(0.3f, 0.2f);
+    public static readonly Vector2[] vertices = {
+        new(colliderHalfSize.x, colliderHalfSize.y),
+        new(-colliderHalfSize.x, colliderHalfSize.y),
+        new(-colliderHalfSize.x, -colliderHalfSize.y),
+        new(colliderHalfSize.x, -colliderHalfSize.y)
+    };
+    public static readonly Vector2[][] directionVertices = {
+        new Vector2[] { vertices[1], vertices[2] },
+        new Vector2[] { vertices[3], vertices[0] },
+        new Vector2[] { vertices[0], vertices[1] },
+        new Vector2[] { vertices[2], vertices[3] },
+    };
+    public static readonly Vector2[] boundaryMidPoints = {
+        new(-colliderHalfSize.x, 0),
+        new(colliderHalfSize.x, 0),
+        new(0 , colliderHalfSize.y),
+        new(0, -colliderHalfSize.y)
+    };
+    public static readonly Vector2[] initialPositions = {
+        AI.PosToMapPos(new Vector2Int(1, 26)),
+        AI.PosToMapPos(new Vector2Int(26, 26)),
         AI.PosToMapPos(new Vector2Int(1, 1)),
         AI.PosToMapPos(new Vector2Int(26, 1))};
-    public static readonly Color32[] characterColors = {
+    public static readonly Color32[] colors = {
         new(48, 172, 224, 255),
         new(92, 222, 114, 255),
         new(229, 220, 84, 255),
         new(231, 88, 80, 255)
     };
+    public static readonly string[] names = { "Trinny", "Mimmo", "Nou", "Duu" };
 
     private static readonly GameObject characterAvatarHealthPrefab = Resources.Load<GameObject>("UI/CharacterAvatarHealth");
     private static readonly GameObject characterPrefab = Resources.Load<GameObject>("Characters/Character");
@@ -60,7 +81,7 @@ public class Character {
     }
 
     public void Create(int index, Player player) {
-        GameObject characterAvatarHealth = Object.Instantiate(characterAvatarHealthPrefab);
+        GameObject characterAvatarHealth = UnityEngine.Object.Instantiate(characterAvatarHealthPrefab);
         CharacterAvatarHealth characterAvatarHealthController = characterAvatarHealth.GetComponent<CharacterAvatarHealth>();
         characterAvatarHealthController.characterName.Value = new(player.CharacterName);
         characterAvatarHealthController.playerName.Value = new(player.Name);
@@ -69,8 +90,8 @@ public class Character {
         if (!player.IsNPC) characterAvatarHealth.GetComponent<NetworkObject>().SpawnWithOwnership(player.ClientId);
         else characterAvatarHealth.GetComponent<NetworkObject>().Spawn();
 
-        Position = characterInitialPositions[index];
-        GameObject character = Object.Instantiate(characterPrefab, Position, Quaternion.identity);
+        Position = initialPositions[index];
+        GameObject character = UnityEngine.Object.Instantiate(characterPrefab, Position, Quaternion.identity);
         CharacterController controller = character.GetComponent<CharacterController>();
         Static.controllers[this] = controller;
         controller.Init(this, characterAvatarHealthController);

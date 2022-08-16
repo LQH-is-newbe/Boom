@@ -21,10 +21,9 @@ public class Static {
     // both
     public static readonly HttpClient client = new HttpClient();
     public static string httpServerAddress;
-    public static string[] characters = { "Trinny", "Mimmo", "Nou", "Duu" };
     public static string[] maps = { "Halloween", "Winter" };
-    public static Vector2 characterColliderSize = new(0.6f, 0.4f);
     public static NetworkVariables networkVariables;
+    public static Map<bool> hasObstacle = new(mapSize);
 
     public static bool singlePlayer = false;
 }
