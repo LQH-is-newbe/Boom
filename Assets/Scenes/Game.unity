@@ -612,7 +612,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 287060757}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 706.01733, y: 360.02304, z: -6.0427985}
+  m_LocalPosition: {x: 0, y: 0, z: -6.0427985}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -951,6 +951,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4b95ba331bca3aa4b92831fae1a18563, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  aircraftPrefab: {fileID: 7086996678045674711, guid: 1fcb2e7dcfa19fc44ae9427d70d95041, type: 3}
 --- !u!4 &928266206
 Transform:
   m_ObjectHideFlags: 0
@@ -1177,8 +1178,8 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_AdditionalShaderChannelsFlag: 0
-  m_SortingLayerID: 0
-  m_SortingOrder: -20
+  m_SortingLayerID: -1440293975
+  m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!224 &1203553088
 RectTransform:
@@ -1520,11 +1521,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4219294184972444364, guid: 801d0e629f4133e4da439892c47e67f1, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1036.5898
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4219294184972444364, guid: 801d0e629f4133e4da439892c47e67f1, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 370.13168
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4219294184972444364, guid: 801d0e629f4133e4da439892c47e67f1, type: 3}
       propertyPath: m_LocalPosition.z

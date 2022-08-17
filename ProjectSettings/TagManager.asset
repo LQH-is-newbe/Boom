@@ -13,6 +13,7 @@ TagManager:
   - Map
   - GameMessage
   - Explode
+  - Transition
   layers:
   - Default
   - TransparentFX
@@ -47,6 +48,15 @@ TagManager:
   - 
   - 
   m_SortingLayers:
+  - name: Background
+    uniqueID: 2854673321
+    locked: 0
+  - name: TileMap
+    uniqueID: 754680413
+    locked: 0
   - name: Default
     uniqueID: 0
+    locked: 0
+  - name: Aircraft
+    uniqueID: 2218286679
     locked: 0

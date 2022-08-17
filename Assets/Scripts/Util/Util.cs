@@ -35,12 +35,4 @@ public class Util {
         throw new Exception("No network adapters with an IPv4 address in the system!");
     }
 
-    public static void NotifyServerAddPlayer() {
-        Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-join", Static.roomIdJson);
-    }
-
-    public static void NotifyServerRemovePlayer() {
-        Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-leave", Static.roomIdJson);
-    }
-
 }

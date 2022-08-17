@@ -5,12 +5,23 @@ using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
 public class GameStateController : MonoBehaviour {
-    public const float gameOverMessageShowTime = 2;
-    private float gameOverMessagetimer;
-    private float countDownTimer;
+    private const float gameOverMessageShowTime = 2;
+    private static readonly float firstAircraftTime = 30f / Player.players.Count;
+    private static readonly float aircraftInterval = 15f;
+
+    [SerializeField]
+    private GameObject aircraftPrefab;
 
     private void Awake() {
-        countDownTimer = 3;
+        if (!NetworkManager.Singleton.IsServer) return;
+        gameObject.AddComponent<Timer>().Init(3, () => { Static.networkVariables.gameRunning.Value = true; });
+        gameObject.AddComponent<Timer>().Init(firstAircraftTime, () => { CreateAircraft(); });
+    }
+
+    private void CreateAircraft() {
+        GameObject aircraft = Instantiate(aircraftPrefab, new Vector2(-5f, Random.RandomFloat() * Static.mapSize), Quaternion.identity);
+        aircraft.GetComponent<NetworkObject>().Spawn(true);
+        gameObject.AddComponent<Timer>().Init(aircraftInterval, () => { CreateAircraft(); });
     }
 
     public void TestPlayerWins() {
@@ -23,29 +34,14 @@ public class GameStateController : MonoBehaviour {
         }
     }
 
-    private void Update() {
-        if (countDownTimer > 0) {
-            countDownTimer -= Time.deltaTime;
-            if (countDownTimer <= 0) {
-                Static.networkVariables.gameRunning.Value = true;
-            }
-        }
-        if (gameOverMessagetimer > 0) {
-            gameOverMessagetimer -= Time.deltaTime;
-            if (gameOverMessagetimer <= 0) {
-                NewGame();
-            }
-        }
-    }
-
     public void NewGame() {
-        if (!Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/end-game", Static.roomIdJson);
+        if (!Static.singlePlayer && !Static.debugMode) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/end-game", Static.roomIdJson);
         NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
     }
 
     private void ShowGameOverMessage(string message) {
         GameObject.Find("GameMessage").GetComponent<GameMessage>().GameOverClientRpc(message);
         Static.networkVariables.gameRunning.Value = false;
-        gameOverMessagetimer = gameOverMessageShowTime;
+        gameObject.AddComponent<Timer>().Init(gameOverMessageShowTime, () => { NewGame(); });
     }
 }

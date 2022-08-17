@@ -30,8 +30,8 @@ public class AIPredictionGenerator {
                     blockSnapshot.explodes.Add(explode.Copy());
                     Explode explodeSnapshot = blockSnapshot.explodes[i];
                     ExplodeController explodeController = (ExplodeController)Static.controllers[explode];
-                    if (explodeController.TimeToExplode > 0) {
-                        events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExplode - shiftTime + envShiftTime, explodeSnapshot));
+                    if (explodeController.TimeToExtend > 0) {
+                        events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExtend - shiftTime + envShiftTime, explodeSnapshot));
                     }
                     events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy - shiftTime + envShiftTime, explodeSnapshot));
                 }

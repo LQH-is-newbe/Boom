@@ -6,27 +6,23 @@ using Unity.Netcode;
 public class GameMessage : NetworkBehaviour {
     private TMPro.TextMeshProUGUI message;
     private Animator animator;
-    private float countDownTimer;
+    private int nextCountDownNumber;
 
     public override void OnNetworkSpawn() {
         message = GetComponent<TMPro.TextMeshProUGUI>();
         animator = GetComponent<Animator>();
         animator.SetTrigger("CountDown");
-        message.text = "3";
-        countDownTimer = 3;
+        nextCountDownNumber = 3;
+        ChangeCountDownMessage();
     }
 
-    private void Update() {
-        if (countDownTimer > 0) {
-            float prev = countDownTimer;
-            countDownTimer -= Time.deltaTime;
-            if (prev > 2 && countDownTimer <= 2) {
-                message.text = "2";
-            } else if (prev > 1 && countDownTimer <= 1) {
-                message.text = "1";
-            } else if (countDownTimer <= 0) {
-                message.text = "GO!";
-            }
+    private void ChangeCountDownMessage() {
+        if (nextCountDownNumber > 0) {
+            message.text = nextCountDownNumber.ToString();
+            nextCountDownNumber--;
+            gameObject.AddComponent<Timer>().Init(1f, () => { ChangeCountDownMessage(); });
+        } else {
+            message.text = "GO!";
         }
     }
 

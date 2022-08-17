@@ -7,12 +7,14 @@ using Unity.Collections;
 public class CharacterController : NetworkBehaviour {
     private const float blockedErrorStart = 0.2f;
     private const float blockedErrorEnd = 0.5f;
+    private const float blinkSolidTime = 0.1f;
+    private const float blinkTransparentTime = 0.1f;
 
-    private NetworkVariable<FixedString64Bytes> characterName = new();
+    private readonly NetworkVariable<FixedString64Bytes> characterName = new();
+    private readonly NetworkVariable<bool> isNPC = new();
+    private readonly NetworkVariable<int> id = new();
     public NetworkVariable<bool> alive = new(true);
-    private NetworkVariable<bool> isNPC = new();
     public NetworkVariable<float> speed = new(Character.initialSpeed);
-    private NetworkVariable<int> id = new();
 
     [SerializeField]
     private GameObject display;
@@ -23,30 +25,19 @@ public class CharacterController : NetworkBehaviour {
     private Animator animator;
     private CharacterAvatarHealth characterAvatarHealth;
 
-    private float invincibleTimer;
-    private float deadTimer = -1;
     public Character character;
-
-    private void Update() {
-        if (IsServer) {
-            if (invincibleTimer > 0) {
-                invincibleTimer -= Time.deltaTime;
-                if (invincibleTimer <= 0) {
-                    character.IsInvincible = false;
-                }
-            }
-            if (deadTimer > 0) {
-                deadTimer -= Time.deltaTime;
-                if (deadTimer <= 0) {
-                    Destroy(gameObject);
-                }
-            }
-        }
-    }
 
     public override void OnNetworkSpawn() {
         networkAnimator = display.GetComponent<NetworkAnimator>();
         GetComponent<BoxCollider2D>().size = Character.colliderHalfSize * 2;
+        //Debug.Log(1);
+        //transform.SetParent(GameObject.Find("InputController").transform);
+        //Debug.Log(transform.parent);
+        //Debug.Log(GameObject.Find("InputController"));
+        //Debug.Log(2);
+        //GameObject haha = Instantiate(Resources.Load<GameObject>("Characters/test"));
+        //haha.transform.SetParent(transform);
+        //Debug.Log(3);
         if (IsOwner) {
             if (isNPC.Value) {
                 gameObject.AddComponent<BotController>();
@@ -80,6 +71,8 @@ public class CharacterController : NetworkBehaviour {
         id.Value = character.Id;
         this.characterAvatarHealth = characterAvatarHealth;
     }
+
+    // move
 
     public void Move(Direction direction, float positionChangeDistance = 0) {
         if (direction == Direction.zero) {
@@ -147,23 +140,44 @@ public class CharacterController : NetworkBehaviour {
         }
     }
 
+    private void MoveServerCall(float x, float y) {
+        character.Position = new(x, y);
+        transform.position = new(x, y);
+        MoveClientRpc(x, y, Util.GetClientRpcParamsExcept(OwnerClientId));
+    }
+
+    [ServerRpc]
+    private void MoveServerRpc(float x, float y) {
+        MoveServerCall(x, y);
+    }
+
+    [ClientRpc]
+    private void MoveClientRpc(float x, float y, ClientRpcParams clientRpcParams = default) {
+        transform.position = new Vector2(x, y);
+    }
+
+    // put bomb
+
     public void PutBomb() {
         if (IsServer) PutBombServerCall();
         else PutBombServerRpc();
     }
 
-    public void PutBombServerCall() {
+    private void PutBombServerCall() {
         character.PutBomb();
     }
 
     [ServerRpc]
-    public void PutBombServerRpc() {
+    private void PutBombServerRpc() {
         PutBombServerCall();
     }
 
+    // other
+
     public void Hit() {
-        invincibleTimer = Character.timeInvincible;
+        gameObject.AddComponent<Timer>().Init(Character.timeInvincible, () => { character.IsInvincible = false; });
         networkAnimator.AnimationClientRpc("Hit");
+        BlinkClientRpc();
     }
 
     public void ChangeHealth(int health) {
@@ -171,24 +185,14 @@ public class CharacterController : NetworkBehaviour {
     }
 
     public void Dead() {
-        networkAnimator.AnimationClientRpc("Dead", true);
+        networkAnimator.AnimationClientRpc("Hit");
         alive.Value = false;
-        deadTimer = 3;
-    }
-
-    public void MoveServerCall(float x, float y) {
-        character.Position = new(x, y);
-        transform.position = new(x, y);
-        MoveClientRpc(x, y, Util.GetClientRpcParamsExcept(OwnerClientId));
-    }
-
-    [ServerRpc]
-    public void MoveServerRpc(float x, float y) {
-        MoveServerCall(x, y);
+        gameObject.AddComponent<Timer>().Init(0.1f, () => { networkAnimator.AnimationClientRpc("Dead", true); });
+        gameObject.AddComponent<Timer>().Init(3, () => { Destroy(gameObject); });
     }
 
     [ClientRpc]
-    public void MoveClientRpc(float x, float y, ClientRpcParams clientRpcParams = default) {
-        transform.position = new Vector2(x, y);
+    private void BlinkClientRpc() {
+        gameObject.AddComponent<Blink>().Init(display.GetComponent<SpriteRenderer>(), Character.timeInvincible, blinkSolidTime, blinkTransparentTime);
     }
 }

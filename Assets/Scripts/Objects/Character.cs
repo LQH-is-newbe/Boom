@@ -121,23 +121,21 @@ public class Character {
     public void ChangeHealth(int amount) {
         if (!Static.networkVariables.gameRunning.Value) return;
         CharacterController controller = (CharacterController)Static.controllers[this];
-        if (amount < 0) {
-            //if (IsNPC) {
-            //    Debug.Log("bot hurt at (" + Position.x + "," + Position.y + ")");
-            //    Time.timeScale = 0;
-            //}
-            if (IsInvincible) return;
-            controller.Hit();
-            IsInvincible = true;
-        }
+        if (amount < 0 && IsInvincible) return;
         health = Mathf.Clamp(health + amount, 0, maxHealth);
         controller.ChangeHealth(health);
         if (health == 0) {
-            Collectable.CreateCharacterDeadDrops(this);
+            List<Collectable> deadDrops = Collectable.AssignRandomPosition(collectables);
+            foreach (Collectable collectable in deadDrops) {
+                collectable.Create(true, new(Position.x - 0.5f, Position.y - 0.5f));
+            }
             IsAlive = false;
             characters.Remove(Id);
             controller.Dead();
             GameObject.Find("GameStateController").GetComponent<GameStateController>().TestPlayerWins();
+        } else if (amount < 0) {
+            controller.Hit();
+            IsInvincible = true;
         }
     }
 }

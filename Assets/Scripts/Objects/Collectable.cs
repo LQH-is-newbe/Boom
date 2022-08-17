@@ -6,20 +6,50 @@ using UnityEngine;
 
 public class Collectable: MapElement {
     public class Type {
-        private readonly string name;
-        private readonly float prob;
+        public static readonly Type[] types = {
+            new Type("Speed", 0.8f, true, collecter => collecter.Speed += 0.6f),
+            new Type("BombPower", 1.0f, true, collecter => collecter.BombPower++),
+            new Type("BombCapacity", 1.0f, true, collecter => collecter.BombCapacity++),
+            new Type("Health", 0.36f, false, collecter => collecter.ChangeHealth(1))
+        };
+        private static readonly float[] cumulativeProb;
+
+        static Type() {
+            cumulativeProb = new float[types.Length];
+            float probSum = 0;
+            for (int i = 0; i < types.Length; ++i) {
+                probSum += types[i].Prob;
+                cumulativeProb[i] = probSum;
+            }
+            for (int i = 0; i < types.Length; ++i) {
+                cumulativeProb[i] /= probSum;
+            }
+        }
+
+        public static float[] CumulativeProb(float multiplier = 1) {
+            if (multiplier == 1) {
+                return cumulativeProb;
+            } else {
+                float[] result = new float[types.Length];
+                for (int i = 0; i < types.Length; ++i) {
+                    result[i] = cumulativeProb[i] * multiplier;
+                }
+                return result;
+            }
+        }
+
         private readonly bool isAttribute;
         private readonly System.Action<Character> apply;
 
-        public Type(string name, float prob, bool isAttribute, System.Action<Character> apply) {
-            this.name = name;
-            this.prob = prob;
+        private Type(string name, float prob, bool isAttribute, System.Action<Character> apply) {
+            Name = name;
+            Prob = prob;
             this.isAttribute = isAttribute;
             this.apply = apply;
         }
 
-        public float Prob { get { return prob; } }
-        public string Name { get { return name; } }
+        public float Prob { get; }
+        public string Name { get; }
         public void Apply(Character collecter) {
             if (isAttribute) {
                 if (collecter.collectables.ContainsKey(this)) {
@@ -32,40 +62,25 @@ public class Collectable: MapElement {
         }
     }
 
-    private static readonly Type[] types = {
-        new Type("Speed", 0.8f, true, collecter => collecter.Speed += 0.6f),
-        new Type("BombPower", 1.0f, true, collecter => collecter.BombPower++),
-        new Type("BombCapacity", 1.0f, true, collecter => collecter.BombCapacity++),
-        new Type("Health", 0.36f, false, collecter => collecter.ChangeHealth(1))
-    };
-
-    private static readonly float createProb = 0.5f;
-
-    public static void AssignDestroyableDrops() {
-        float[] cumulativeProb = new float[types.Length];
-        float probSum = 0;
-        for (int i = 0; i < types.Length; ++i) {
-            probSum += types[i].Prob;
-            cumulativeProb[i] = probSum;
-        }
-        for (int i = 0; i < types.Length; ++i) {
-            cumulativeProb[i] /= probSum / createProb;
-        }
-        int[] randPermutation = Random.RandomPermutation(Static.totalDestroyableNum, Static.totalDestroyableNum);
-        for (int i = 0; i < Static.totalDestroyableNum; ++i) {
-            float randFloat = (float)randPermutation[i] / Static.totalDestroyableNum;
-            for (int j = 0; j < types.Length; ++j) {
+    public static Type[] RandomTypes(int num, float probMultiplier = 1) {
+        Type[] result = new Type[num];
+        int[] randPermutation = Random.RandomPermutation(num, num);
+        float[] cumulativeProb = probMultiplier == 1 ? Type.CumulativeProb() : Type.CumulativeProb(probMultiplier);
+        for (int i = 0; i < num; ++i) {
+            float randFloat = (randPermutation[i] + Random.RandomFloat()) / num;
+            for (int j = 0; j < Type.types.Length; ++j) {
                 if (randFloat < cumulativeProb[j]) {
-                    Static.destroyables[i].collectableType = types[j];
+                    result[i] = Type.types[j];
                     break;
                 }
             }
         }
+        return result;
     }
 
-    public static void CreateCharacterDeadDrops(Character character) {
+    public static List<Collectable> AssignRandomPosition(Dictionary<Type, int> collectables) {
         // TODO: collectable overlap with bomb or collectable
-        Dictionary<Type, int> collectables = character.collectables;
+        List<Collectable> result = new();
         int emptyBlockCount = 0;
         for (int x = 0; x < Static.mapSize; ++x) {
             for (int y = 0; y < Static.mapSize; ++y) {
@@ -86,8 +101,7 @@ public class Collectable: MapElement {
                 if (Static.mapBlocks[mapBlock].element == null) {
                     foreach (Type type in collectables.Keys) {
                         if (randPermutation[i] < cumulativeCount[type]) {
-                            Collectable collectable = new(mapBlock, type);
-                            collectable.Create(true, new(character.Position.x - 0.5f, character.Position.y - 0.5f));
+                            result.Add(new(mapBlock, type));
                             break;
                         }
                     }
@@ -95,6 +109,7 @@ public class Collectable: MapElement {
                 }
             }
         }
+        return result;
     }
 
     private static readonly GameObject collectablePrefab = Resources.Load<GameObject>("Collectable/Collectable");

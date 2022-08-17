@@ -11,29 +11,11 @@ public class ExplodeController : NetworkBehaviour {
     public NetworkVariable<float> rotateAngle = new();
     public GameObject explodePrefab;
     public GameObject display;
-    private float timer = 10;
+    private Timer extendTimer;
+    private Timer destroyTimer;
     public Explode explode;
-    private bool createNext = true;
-    private bool isFadingAway = false;
-    public float TimeToExplode { get { return timer - explode.ExistTime + Explode.explodeInterval; } }
-    public float TimeToDestroy { get { return timer; } }
-
-    private void Update() {
-        if (!NetworkManager.Singleton.IsServer) return;
-        timer -= Time.deltaTime;
-        if (createNext && timer < explode.ExistTime - Explode.explodeInterval) {
-            explode.Extend();
-            createNext = false;
-        }
-        if (!isFadingAway && timer < fadeAwayTime) {
-            FadeAwayClientRpc();
-            isFadingAway = true;
-        }
-        if (timer < 0) {
-            explode.Destroy();
-            Destroy(gameObject);
-        }
-    }
+    public float TimeToExtend { get { return extendTimer.TimeRemain(); } }
+    public float TimeToDestroy { get { return destroyTimer.TimeRemain(); } }
 
     private void OnTriggerEnter2D(Collider2D other) {
         if (!IsServer) return;
@@ -45,7 +27,14 @@ public class ExplodeController : NetworkBehaviour {
 
     public override void OnNetworkSpawn() {
         if (IsServer) {
-            timer = explode.ExistTime;
+            extendTimer = gameObject.AddComponent<Timer>();
+            extendTimer.Init(Explode.extendTime, () => { explode.Extend(); });
+            gameObject.AddComponent<Timer>().Init(explode.ExistTime - fadeAwayTime, () => { FadeAwayClientRpc(); });
+            destroyTimer = gameObject.AddComponent<Timer>();
+            destroyTimer.Init(explode.ExistTime, () => {
+                explode.Destroy();
+                Destroy(gameObject);
+            });
             string path = "Explode/Sprites/";
             if (explode.Direction == Direction.zero) {
                 path += "center";
@@ -71,7 +60,7 @@ public class ExplodeController : NetworkBehaviour {
 
     [ClientRpc]
     private void FadeAwayClientRpc() {
-        FadeAway fadeAway = gameObject.AddComponent<FadeAway>();
-        fadeAway.Init(display.GetComponent<SpriteRenderer>(), fadeAwayTime);
+        AlphaGradient fadeAway = gameObject.AddComponent<AlphaGradient>();
+        fadeAway.Init(true, display.GetComponent<SpriteRenderer>(), fadeAwayTime);
     }
 }

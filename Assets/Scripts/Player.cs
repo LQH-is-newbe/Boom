@@ -34,6 +34,7 @@ public class Player {
                 }
                 player.id = i;
                 players[i] = player;
+                if (!Static.debugMode && !Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-join", Static.roomIdJson);
                 return player;
             }
         }
@@ -43,5 +44,6 @@ public class Player {
     public void Remove() {
         players.Remove(id);
         if (!isNPC) clientPlayers.Remove(clientId);
+        if (!Static.debugMode && !Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-leave", Static.roomIdJson);
     }
 }

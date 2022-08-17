@@ -6,43 +6,26 @@ using Unity.Netcode;
 public class DestroyableController : NetworkBehaviour {
     private const float explodeTime = 0.5f;
     private const float explodeFadeAwayTime = 0.1f;
-    private bool isExplodeFadingAway = false;
-    private float explodeTimer;
     public Destroyable destroyable;
-
-    //public override void OnNetworkSpawn() {
-    //    Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = true;
-    //}
 
     public override void OnDestroy() {
         Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = false;
     }
 
-    private void Update() {
-        if (!IsServer) return;
-        if (explodeTimer > 0) {
-            explodeTimer -= Time.deltaTime;
-            if (!isExplodeFadingAway && explodeTimer < explodeFadeAwayTime) {
-                ExplodeFadeAwayClientRpc();
-                isExplodeFadingAway = true;
-            }
-            if (explodeTimer <= 0) {
-                destroyable.RemoveBlock();
-                Destroy(gameObject);
-                BlockDestroyClientRpc();
-            }
-        }
-    }
-
     public void DestroyBlock() {
-        explodeTimer = explodeTime;
+        gameObject.AddComponent<Timer>().Init(explodeTime, () => {
+            destroyable.RemoveBlock();
+            Destroy(gameObject);
+            BlockDestroyClientRpc();
+        });
+        gameObject.AddComponent<Timer>().Init(explodeTime - explodeFadeAwayTime, () => { ExplodeFadeAwayClientRpc(); });
         BlockExplodeClientRpc();
     }
 
     [ClientRpc]
     private void ExplodeFadeAwayClientRpc() {
-        FadeAway fadeAway = gameObject.AddComponent<FadeAway>();
-        fadeAway.Init(GetComponent<SpriteRenderer>(), explodeFadeAwayTime);
+        AlphaGradient fadeAway = gameObject.AddComponent<AlphaGradient>();
+        fadeAway.Init(true, GetComponent<SpriteRenderer>(), explodeFadeAwayTime);
     }
 
     [ClientRpc]

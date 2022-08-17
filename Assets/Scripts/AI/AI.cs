@@ -207,7 +207,7 @@ public class AI {
         List<Instruction> instructions = new();
         List<AIPredictionEvent> additionalEvents = new();
         DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
-        Debug.Log("instructions: " + InstructionsToString(instructions));
+        //Debug.Log("instructions: " + InstructionsToString(instructions));
         //Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
@@ -251,7 +251,7 @@ public class AI {
                 for (int i = 0; i < 4; ++i) {
                     Vector2Int nextMapBlock = PosToMapBlock(node.pos + Direction.directions[i].Vector2Int);
                     if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
-                    if (map[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.explodeInterval)) {
+                    if (map[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.extendTime)) {
                         if (TestPutBomb(node)) return true;
                     }
                 }

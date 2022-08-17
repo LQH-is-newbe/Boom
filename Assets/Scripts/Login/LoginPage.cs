@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
@@ -9,8 +10,13 @@ public class LoginPage : MonoBehaviour {
     public TMP_InputField playerName;
 
     public void Login() {
-        Static.playerName = playerName.text;
-        SceneManager.LoadScene("Lobby");
+        Static.debugMode = Environment.GetEnvironmentVariable("BOOM_DEVELOPMENT") != null;
+        if (Static.debugMode) {
+            NetworkManager.Singleton.StartClient();
+        } else {
+            Static.playerName = playerName.text;
+            SceneManager.LoadScene("Lobby");
+        }
     }
 
     public void Singleplayer() {

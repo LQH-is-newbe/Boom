@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Static {
     // server
-    public static int mapSize = 14;
+    public const int mapSize = 14;
     public static Map<MapBlock> mapBlocks = new(mapSize);
     public static Dictionary<object, object> controllers = new();
     public static string passcode;
@@ -12,7 +12,7 @@ public class Static {
     public static int mapIndex = 0;
     public static List<Collectable> collectables = new();
     public static List<Destroyable> destroyables = new();
-    public static int totalDestroyableNum;
+    public static int totalDestroyableNum = 0;
 
     // client
     public const string serverPublicAddress = "3.15.187.113";
@@ -26,6 +26,7 @@ public class Static {
     public static Map<bool> hasObstacle = new(mapSize);
 
     public static bool singlePlayer = false;
+    public static bool debugMode = false;
 }
 
 public class RoomId {

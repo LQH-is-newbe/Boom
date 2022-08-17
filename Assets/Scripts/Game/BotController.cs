@@ -68,7 +68,7 @@ public class BotController : MonoBehaviour {
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);
-            Debug.Log(currentInstruction);
+            //Debug.Log(currentInstruction);
         }
         float timeLeft = 0;
         if (currentInstruction.waitTime > 0) {

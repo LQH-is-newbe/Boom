@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
+using System;
 
 public class RoomStarter : MonoBehaviour {
     public GameObject uiPrefab;

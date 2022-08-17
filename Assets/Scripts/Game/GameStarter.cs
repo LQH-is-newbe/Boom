@@ -36,7 +36,8 @@ public class GameStarter : MonoBehaviour {
         GameObject map = Instantiate(mapPrefab, Vector2.zero, Quaternion.identity);
         map.GetComponent<NetworkObject>().Spawn(true);
 
-        Collectable.AssignDestroyableDrops();
+
+        Destroyable.AssignDrops();
 
         GameObject ui = Instantiate(uiPrefab);
         ui.GetComponent<NetworkObject>().Spawn(true);

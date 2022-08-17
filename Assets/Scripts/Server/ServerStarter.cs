@@ -11,31 +11,39 @@ using System.Text;
 
 public class ServerStarter : MonoBehaviour {
     private void Start() {
-        Application.targetFrameRate = 60;
+        Static.debugMode = Environment.GetEnvironmentVariable("BOOM_DEVELOPMENT") != null;
+        Application.targetFrameRate = 200;
 
         NetworkManager.Singleton.ConnectionApprovalCallback = ConnectionApprovalCallback;
         NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectCallback;
 
-        Static.httpServerAddress = "host.docker.internal";
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData("0.0.0.0", 7777);
-        Static.passcode = Environment.GetEnvironmentVariable("PASSCODE");
-        RoomId roomId = new();
-        roomId.roomId = int.Parse(Environment.GetEnvironmentVariable("ROOM_ID"));
-        Static.roomIdJson = new StringContent(JsonConvert.SerializeObject(roomId), Encoding.UTF8, "application/json");
+        if (!Static.debugMode) {
+            Static.httpServerAddress = "host.docker.internal";
+            NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData("0.0.0.0", 7777);
+            Static.passcode = Environment.GetEnvironmentVariable("PASSCODE");
+            RoomId roomId = new();
+            roomId.roomId = int.Parse(Environment.GetEnvironmentVariable("ROOM_ID"));
+            Static.roomIdJson = new StringContent(JsonConvert.SerializeObject(roomId), Encoding.UTF8, "application/json");
+        }
         NetworkManager.Singleton.StartServer();
         NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
     }
 
     private void ConnectionApprovalCallback(NetworkManager.ConnectionApprovalRequest request, NetworkManager.ConnectionApprovalResponse response) {
-        var connectionData = JsonConvert.DeserializeObject<ConnectionData>(System.Text.Encoding.ASCII.GetString(request.Payload));
-        if (connectionData.passcode != Static.passcode) {
-            response.Approved = false;
-            return;
+        string playerName;
+        if (!Static.debugMode) {
+            var connectionData = JsonConvert.DeserializeObject<ConnectionData>(Encoding.ASCII.GetString(request.Payload));
+            if (connectionData.passcode != Static.passcode) {
+                response.Approved = false;
+                return;
+            }
+            playerName = connectionData.playerName;
+        } else {
+            playerName = Random.RandomInt(100).ToString();
         }
         response.Approved = true;
-        Player player = Player.CreatePlayer(false, request.ClientNetworkId, connectionData.playerName);
+        Player player = Player.CreatePlayer(false, request.ClientNetworkId, playerName);
         Debug.Log("client joined name " + player.Name);
-        Util.NotifyServerAddPlayer();
         if (SceneManager.GetActiveScene().name == "Room") {
             GameObject.Find("RoomUI").GetComponent<CharacterSelection>().AddPlayer(player);
         }
@@ -45,7 +53,6 @@ public class ServerStarter : MonoBehaviour {
         Player player = Player.clientPlayers[clientId];
         Debug.Log("client left name " + player.Name);
         player.Remove();
-        Util.NotifyServerRemovePlayer();
         if (SceneManager.GetActiveScene().name == "Room") {
             GameObject.Find("RoomUI").GetComponent<CharacterSelection>().RemovePlayer(player);
         }
