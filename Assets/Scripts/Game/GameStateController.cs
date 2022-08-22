@@ -6,7 +6,7 @@ using UnityEngine.SceneManagement;
 
 public class GameStateController : MonoBehaviour {
     private const float gameOverMessageShowTime = 2;
-    private static readonly float firstAircraftTime = 30f / Player.players.Count;
+    private static readonly float firstAircraftTime = 120f / Player.players.Count;
     private static readonly float aircraftInterval = 15f;
 
     [SerializeField]
@@ -35,12 +35,12 @@ public class GameStateController : MonoBehaviour {
     }
 
     public void NewGame() {
-        if (!Static.singlePlayer && !Static.debugMode) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/end-game", Static.roomIdJson);
+        if (!Static.local && !Static.debugMode) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/end-game", Static.portStringContent);
         NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
     }
 
     private void ShowGameOverMessage(string message) {
-        GameObject.Find("GameMessage").GetComponent<GameMessage>().GameOverClientRpc(message);
+        Static.networkVariables.ShowGameOverMessageClientRpc(message);
         Static.networkVariables.gameRunning.Value = false;
         gameObject.AddComponent<Timer>().Init(gameOverMessageShowTime, () => { NewGame(); });
     }

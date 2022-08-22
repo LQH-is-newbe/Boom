@@ -831,7 +831,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 0
@@ -843,6 +843,18 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
     buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Server
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
@@ -6288,13 +6300,13 @@ TextureImporter:
       ExtraObjects@128x128_126: 21300252
       ExtraObjects@128x128_10: 21300020
       ExtraObjects@128x128_189: 21300378
-      ExtraObjects@128x128_101: 21300202
       ExtraObjects@128x128_39: 21300078
+      ExtraObjects@128x128_50: 21300100
       ExtraObjects@128x128_38: 21300076
       ExtraObjects@128x128_182: 21300364
       ExtraObjects@128x128_22: 21300044
       ExtraObjects@128x128_77: 21300154
-      ExtraObjects@128x128_50: 21300100
+      ExtraObjects@128x128_101: 21300202
       ExtraObjects@128x128_72: 21300144
       ExtraObjects@128x128_16: 21300032
       ExtraObjects@128x128_102: 21300204

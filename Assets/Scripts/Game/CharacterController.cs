@@ -13,6 +13,7 @@ public class CharacterController : NetworkBehaviour {
     private readonly NetworkVariable<FixedString64Bytes> characterName = new();
     private readonly NetworkVariable<bool> isNPC = new();
     private readonly NetworkVariable<int> id = new();
+    private readonly NetworkVariable<int> clientPlayerId = new();
     public NetworkVariable<bool> alive = new(true);
     public NetworkVariable<float> speed = new(Character.initialSpeed);
 
@@ -30,19 +31,12 @@ public class CharacterController : NetworkBehaviour {
     public override void OnNetworkSpawn() {
         networkAnimator = display.GetComponent<NetworkAnimator>();
         GetComponent<BoxCollider2D>().size = Character.colliderHalfSize * 2;
-        //Debug.Log(1);
-        //transform.SetParent(GameObject.Find("InputController").transform);
-        //Debug.Log(transform.parent);
-        //Debug.Log(GameObject.Find("InputController"));
-        //Debug.Log(2);
-        //GameObject haha = Instantiate(Resources.Load<GameObject>("Characters/test"));
-        //haha.transform.SetParent(transform);
-        //Debug.Log(3);
         if (IsOwner) {
             if (isNPC.Value) {
                 gameObject.AddComponent<BotController>();
             } else {
-                gameObject.AddComponent<PlayerController>();
+                PlayerController playerController = gameObject.AddComponent<PlayerController>();
+                playerController.Init(clientPlayerId.Value);
             }
         }
         if (IsServer) {
@@ -70,6 +64,7 @@ public class CharacterController : NetworkBehaviour {
         isNPC.Value = character.IsNPC;
         id.Value = character.Id;
         this.characterAvatarHealth = characterAvatarHealth;
+        clientPlayerId.Value = character.ClientPlayerId;
     }
 
     // move
@@ -133,9 +128,9 @@ public class CharacterController : NetworkBehaviour {
         transform.position = decidedNewMapPos;
         if (IsServer) MoveServerCall(decidedNewMapPos.x, decidedNewMapPos.y);
         else MoveServerRpc(decidedNewMapPos.x, decidedNewMapPos.y);
-        if (positionChange.x < 0 ) {
+        if (positionChange.x < 0 || direction == Direction.left) {
             networkAnimator.SetAnimation("Direction", -1f);
-        } else if (positionChange.x > 0) {
+        } else if (positionChange.x > 0 || direction == Direction.right) {
             networkAnimator.SetAnimation("Direction", 1f);
         }
     }

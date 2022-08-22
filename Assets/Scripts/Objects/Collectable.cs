@@ -7,10 +7,10 @@ using UnityEngine;
 public class Collectable: MapElement {
     public class Type {
         public static readonly Type[] types = {
-            new Type("Speed", 0.8f, true, collecter => collecter.Speed += 0.6f),
-            new Type("BombPower", 1.0f, true, collecter => collecter.BombPower++),
+            new Type("Speed", 0.7f, true, collecter => collecter.Speed += 0.4f),
+            new Type("BombPower", 0.8f, true, collecter => collecter.BombPower++),
             new Type("BombCapacity", 1.0f, true, collecter => collecter.BombCapacity++),
-            new Type("Health", 0.36f, false, collecter => collecter.ChangeHealth(1))
+            new Type("Health", 0.3f, false, collecter => collecter.ChangeHealth(1))
         };
         private static readonly float[] cumulativeProb;
 
@@ -145,10 +145,5 @@ public class Collectable: MapElement {
         Static.collectables.Remove(this);
         Static.controllers.Remove(this);
         Static.mapBlocks[MapBlock].element = null;
-    }
-
-    public void DestroyPrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
-        AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
-        predictionMapBlock.DestroyCollectable(time);
     }
 }

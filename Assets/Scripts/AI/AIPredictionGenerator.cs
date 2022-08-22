@@ -4,11 +4,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class AIPredictionGenerator {
-    // TODO: destroyable explode period
     private readonly List<AIPredictionEvent> events = new();
-    //private readonly AIPrediction predictionTemplate = new();
     private readonly Map<MapBlock> mapSnapshot;
     private readonly Dictionary<int, Character> charactersSnapshot;
+    private readonly int destroyableNumSnapshot;
+    private readonly int collectableNumSnapshot;
 
     public AIPredictionGenerator(float shiftTime, float envShiftTime, List<AIPredictionEvent> nextEvents = null) {
         mapSnapshot = new(Static.mapSize);
@@ -18,12 +18,16 @@ public class AIPredictionGenerator {
                 MapBlock blockSnapshot = new();
                 MapBlock block = Static.mapBlocks[mapBlock];
                 mapSnapshot[mapBlock] = blockSnapshot;
-                blockSnapshot.element = block.element != null ? block.element.Copy() : null;
-                if (block.element is Bomb) {
-                    Bomb bomb = (Bomb)block.element;
+                blockSnapshot.element = block.element?.Copy();
+                if (block.element is Bomb bomb) {
                     Bomb bombSnapshot = (Bomb)blockSnapshot.element;
                     BombController bombController = (BombController)Static.controllers[bomb];
-                    events.Add(new(bombSnapshot.MapBlock, AIPredictionEvent.Type.BombExplode, bombController.TimeToExplode - shiftTime + envShiftTime, bombSnapshot));
+                    events.Add(new(bombSnapshot.MapBlock, AIPredictionEvent.Type.BombTrigger, bombController.TimeToExplode - shiftTime + envShiftTime, bombSnapshot));
+                }
+                if (block.element is Destroyable destroyable && destroyable.exploding) {
+                    Destroyable destroyableSnapshot = (Destroyable)blockSnapshot.element;
+                    DestroyableController destroyableController = (DestroyableController)Static.controllers[destroyable];
+                    events.Add(new(destroyableSnapshot.MapBlock, AIPredictionEvent.Type.DestroyableDestroy, destroyableController.TimeToDestroy - shiftTime + envShiftTime, destroyableSnapshot));
                 }
                 for (int i = 0; i < block.explodes.Count; ++i) {
                     Explode explode = block.explodes[i];
@@ -33,10 +37,12 @@ public class AIPredictionGenerator {
                     if (explodeController.TimeToExtend > 0) {
                         events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExtend - shiftTime + envShiftTime, explodeSnapshot));
                     }
-                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy - shiftTime + envShiftTime, explodeSnapshot));
+                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy + AI.enterErrorTime - shiftTime + envShiftTime, explodeSnapshot));
                 }
             }
         }
+        destroyableNumSnapshot = Static.notExplodedDestroyableNum;
+        collectableNumSnapshot = Static.collectables.Count;
 
         charactersSnapshot = new();
         foreach (int id in Character.characters.Keys) {
@@ -53,27 +59,33 @@ public class AIPredictionGenerator {
     }
 
     public AIPrediction Generate(int playerId, List<AIPredictionEvent> additionalEvents, bool assumeCharacterPutBomb) {
-        PriorityQueue<AIPredictionEvent, float> pq = new();
+        PriorityQueue<AIPredictionEvent> pq = new();
         AIPrediction prediction = new();
+        prediction.destroyableNum = new(destroyableNumSnapshot);
+        prediction.collectableNum = new(collectableNumSnapshot);
         for (int x = 0; x < Static.mapSize; x++) {
             for (int y = 0; y < Static.mapSize; y++) {
                 Vector2Int mapBlock = new(x, y);
                 MapBlock block = mapSnapshot[mapBlock];
 
                 bool isDestroyable = false;
+                bool isNotExplodedDestroyable = false;
                 bool isNoneDestroyable = false;
                 bool isCollectable = false;
                 Bomb bomb = null;
                 int explodes = 0;
 
-                if (block.element is Destroyable) isDestroyable = true;
-                if (block.element is NoneDestroyable) isNoneDestroyable = true;
-                if (block.element is Collectable) isCollectable = true;
-                if (block.element is Bomb) bomb = (Bomb)block.element;
+                if (block.element is Destroyable destroyable) {
+                    isDestroyable = true;
+                    if (!destroyable.exploding) isNotExplodedDestroyable = true;
+                } 
+                else if (block.element is NoneDestroyable) isNoneDestroyable = true;
+                else if (block.element is Collectable) isCollectable = true;
+                else if (block.element is Bomb bomb1) bomb = bomb1;
                 foreach (Explode explode in block.explodes) {
                     ++explodes;
                 }
-                prediction.map[mapBlock] = new(explodes, bomb, isDestroyable, isCollectable, isNoneDestroyable);
+                prediction.map[mapBlock] = new(explodes, bomb, isDestroyable, isNotExplodedDestroyable, isCollectable, isNoneDestroyable);
             } 
         }
 
@@ -108,6 +120,9 @@ public class AIPredictionGenerator {
 public class AIPrediction {
     public Map<AIPredictionMapBlock> map = new(Static.mapSize);
     public Dictionary<int, AIPredictionCharacter> characters = new();
+    public TimedValue<int> destroyableNum;
+    public TimedValue<int> collectableNum;
+    public TimedValue<int> possibleCollectableNum;
 }
 
 public class AIPredictionCharacter {
@@ -117,6 +132,7 @@ public class AIPredictionCharacter {
     public TimedValue<int> bombNum;
     public int bombCapacity;
     public float speed;
+    public Vector2 position;
 
     public AIPredictionCharacter(Character character) {
         id = character.Id;
@@ -125,6 +141,7 @@ public class AIPredictionCharacter {
         bombNum = new(character.BombNum);
         bombCapacity = character.BombCapacity;
         speed = character.Speed;
+        position = character.Position;
     }
 
     public AIPredictionCharacter Copy() {
@@ -133,7 +150,7 @@ public class AIPredictionCharacter {
 }
 
 public class AIPredictionEvent {
-    public enum Type { BombCreate, BombExplode, ExplodeExtend, ExplodeDestroy, CollectableDestroy };
+    public enum Type { BombCreate, BombTrigger, ExplodeExtend, ExplodeDestroy, DestroyableDestroy, CharacterVisit };
     public float time;
     public Type type;
     public object element;
@@ -146,23 +163,33 @@ public class AIPredictionEvent {
         this.mapBlock = mapBlock;
     }
 
-    public void RunEvent(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> pq) {
+    public void RunEvent(AIPrediction prediction, PriorityQueue<AIPredictionEvent> pq) {
+        AIPredictionMapBlock predictionMapBlock = prediction.map[mapBlock];
         if (type == Type.ExplodeExtend) {
             ((Explode)element).ExtendPrediction(prediction, pq, time);
-        } else if (type == Type.BombExplode) {
+        } else if (type == Type.BombTrigger) {
             ((Bomb)element).TriggerPrediction(prediction, pq, time);
         } else if (type == Type.ExplodeDestroy) {
-            ((Explode)element).DestroyPrediction(prediction, pq, time);
+            predictionMapBlock.AddExplodeEnd(time);
         } else if (type == Type.BombCreate){
             ((Bomb)element).CreatePrediction(prediction, pq, time);
-        } else if (type == Type.CollectableDestroy) {
-            ((Collectable)element).DestroyPrediction(prediction, pq, time);
+        } else if (type == Type.DestroyableDestroy) {
+            predictionMapBlock.DestroyDestroyable(time);
+            prediction.possibleCollectableNum.ChangeOnLastValue(time, (num) => { return num + 1; });
+        } else if (type == Type.CharacterVisit) {
+            predictionMapBlock.Visit(time);
+            if (predictionMapBlock.IsAfterDestroyableDestroyed(time) && !predictionMapBlock.IsVisited(time)) {
+                prediction.possibleCollectableNum.ChangeOnLastValue(time, (num) => { return num - 1; });
+            }
+            if (predictionMapBlock.IsCollectable(time)) {
+                predictionMapBlock.DestroyCollectable(time);
+                prediction.collectableNum.ChangeOnLastValue(time, (num) => { return num - 1; });
+            }
         }
     }
 
     public override bool Equals(object obj) {
-        if (obj is AIPredictionEvent) {
-            AIPredictionEvent e = (AIPredictionEvent)obj;
+        if (obj is AIPredictionEvent e) {
             return mapBlock.Equals(e.mapBlock) && type == e.type;
         } else {
             return false;
@@ -182,14 +209,17 @@ public class AIPredictionMapBlock {
     private TimedValue<int> explodes;
     private TimedValue<Bomb> bomb;
     private TimedValue<bool> isDestroyable;
+    private TimedValue<bool> isNotExplodedDestroyable;
     private TimedValue<bool> isCollectable;
+    private TimedValue<bool> visited = new(false);
     private readonly bool isNoneDestroyable;
     private List<float> intervalDivides;
 
-    public AIPredictionMapBlock(int explodes, Bomb bomb, bool isDestroyable, bool isCollectable, bool isNoneDestroyable) {
+    public AIPredictionMapBlock(int explodes, Bomb bomb, bool isDestroyable, bool isNotExplodedDestroyable, bool isCollectable, bool isNoneDestroyable) {
         this.explodes = new(explodes);
         this.bomb = new(bomb);
         this.isDestroyable = new(isDestroyable);
+        this.isNotExplodedDestroyable = new(isNotExplodedDestroyable);
         this.isCollectable = new(isCollectable);
         this.isNoneDestroyable = isNoneDestroyable;
     }
@@ -221,6 +251,14 @@ public class AIPredictionMapBlock {
         AddToIntervalDivides(time);
     }
 
+    public void ExplodeDestroyable(float time) {
+        isNotExplodedDestroyable.Add(time, false);
+    }
+
+    public void Visit(float time) {
+        visited.Add(time, true);
+    }
+
     public void DestroyCollectable(float time) {
         isCollectable.Add(time, false);
     }
@@ -245,6 +283,18 @@ public class AIPredictionMapBlock {
 
     public bool IsDestroyable(float time) {
         return isDestroyable.ValueAt(time);
+    }
+
+    public bool IsNotExplodedDestroyable(float time) {
+        return isNotExplodedDestroyable.ValueAt(time);
+    }
+
+    public bool IsAfterDestroyableDestroyed(float time) {
+        return isDestroyable.initialValue && !isDestroyable.ValueAt(time);
+    }
+
+    public bool IsVisited(float time) {
+        return visited.ValueAt(time);
     }
 
     public Bomb Bomb(float time) {
@@ -280,7 +330,7 @@ public class AIPredictionMapBlock {
 
 public struct TimedValue<T> {
     private List<TimeValuePair<T>> timeValuePairs;
-    private T initialValue;
+    public readonly T initialValue;
 
     public TimedValue(T initialValue) {
         timeValuePairs = null;

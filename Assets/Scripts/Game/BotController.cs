@@ -40,16 +40,20 @@ public class BotController : MonoBehaviour {
     }
 
     private void RetriveNextInstructions(float timeRemains) {
-        Instruction finalInstruction = currentInstructions[currentInstructions.Count - 1];
-        ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, timeRemains, nextEvents)).ContinueWith(
+        Instruction finalInstruction = currentInstructions[^1];
+        nextInstructions = null;
+        List<AIPredictionEvent> events = nextEvents;
+        nextEvents = null;
+        ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, timeRemains, events)).ContinueWith(
             (result) => {
-                if (result.Result.Item1 != waitingDecisionId) return;
+                if (result.Result.Item1 != waitingDecisionId) {
+                    //Debug.Log("decision overdue");
+                    return;
+                }
                 nextInstructions = result.Result.Item2;
                 nextEvents = result.Result.Item3;
             }
         );
-        nextInstructions = null;
-        nextEvents = null;
     }
 
     private void RunInstruction(float time) {
@@ -68,7 +72,7 @@ public class BotController : MonoBehaviour {
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);
-            //Debug.Log(currentInstruction);
+           // Debug.Log(currentInstruction);
         }
         float timeLeft = 0;
         if (currentInstruction.waitTime > 0) {

@@ -834,7 +834,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 0
@@ -880,6 +880,18 @@ TextureImporter:
     overridden: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 1
+  - serializedVersion: 3
+    buildTarget: Server
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
@@ -6333,15 +6345,15 @@ TextureImporter:
       Snowland@128x128_168: 21300336
       Snowland@128x128_203: 21300406
       Snowland@128x128_118: 21300236
+      Snowland@128x128_35: 21300070
       Snowland@128x128_137: 21300274
-      Snowland@128x128_158: 21300316
-      Snowland@128x128_58: 21300116
       Snowland@128x128_106: 21300212
+      Snowland@128x128_58: 21300116
       Snowland@128x128_66: 21300132
+      Snowland@128x128_158: 21300316
       Snowland@128x128_83: 21300166
       Snowland@128x128_27: 21300054
       Snowland@128x128_146: 21300292
-      Snowland@128x128_35: 21300070
       Snowland@128x128_2: 21300004
       Snowland@128x128_142: 21300284
       Snowland@128x128_65: 21300130

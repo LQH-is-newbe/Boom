@@ -3,17 +3,23 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PriorityQueue<T, P> where P : IComparable where T: class {
+public class PriorityQueue<T> where T: class {
+    private readonly float allowedError;
+
+    public PriorityQueue(float allowedError = 0) {
+        this.allowedError = allowedError;
+    }
+
     public class PQNode {
         public T element;
-        public P priority;
+        public float priority;
         public int index;
     }
 
-    private List<PQNode> nodes = new();
-    private Dictionary<T, PQNode> nodesDic = new();
+    private readonly List<PQNode> nodes = new();
+    private readonly Dictionary<T, PQNode> nodesDic = new();
 
-    public void Add(T element, P priority) {
+    public void Add(T element, float priority) {
         PQNode node = new();
         node.element = element;
         node.priority = priority;
@@ -30,15 +36,13 @@ public class PriorityQueue<T, P> where P : IComparable where T: class {
     }
 
     public void Remove(T element) {
-        PQNode node;
-        if (nodesDic.TryGetValue(element, out node)) {
+        if (nodesDic.TryGetValue(element, out PQNode node)) {
             Remove(node.index);
         }
     }
 
     public T Get(T element) {
-        PQNode node;
-        if (nodesDic.TryGetValue(element, out node)) {
+        if (nodesDic.TryGetValue(element, out PQNode node)) {
             return node.element;
         } else {
             return null;
@@ -54,9 +58,13 @@ public class PriorityQueue<T, P> where P : IComparable where T: class {
         nodesDic.Clear();
     }
 
+    private bool Smaller(float a, float b) {
+        return a < b - allowedError || a < b + allowedError && Random.RandomFloat() < 0.5f;
+    }
+
     private void PushUp(int i) {
         int p = (i - 1) / 2;
-        while (i > 0 && nodes[i].priority.CompareTo(nodes[p].priority) < 0) {
+        while (i > 0 && Smaller(nodes[i].priority, nodes[p].priority)) {
             Swap(i, p);
             i = p;
             p = (i - 1) / 2;
@@ -74,9 +82,9 @@ public class PriorityQueue<T, P> where P : IComparable where T: class {
                 if (r >= nodes.Count) {
                     s = l;
                 } else {
-                    s = nodes[l].priority.CompareTo(nodes[r].priority) < 0 ? l : r;
+                    s = Smaller(nodes[l].priority, nodes[r].priority) ? l : r;
                 }
-                if (nodes[i].priority.CompareTo(nodes[s].priority) < 0) {
+                if (Smaller(nodes[i].priority, nodes[s].priority)) {
                     break;
                 } else {
                     Swap(i, s);

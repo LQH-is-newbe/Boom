@@ -4,22 +4,34 @@ using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Collections;
+using UnityEngine.EventSystems;
 
 public class RoomPlayerUI : NetworkBehaviour {
-    public GameObject characterDisplay;
-    AnimatorOverrideController animatorOverrideController;
-    public TMPro.TextMeshProUGUI playerNameText;
-    public GameObject removeBotButton;
-    public GameObject isBotIcon;
-    public GameObject isPlayerIcon;
-    public GameObject isNotReadyIcon;
-    public GameObject isReadyIcon;
+    [SerializeField]
+    private GameObject characterDisplay;
+    [SerializeField]
+    private TMPro.TextMeshProUGUI playerNameText;
+    [SerializeField]
+    private GameObject removeBotButton;
+    [SerializeField]
+    private GameObject isBotIcon;
+    [SerializeField]
+    private GameObject isPlayerIcon;
+    [SerializeField]
+    private GameObject isNotReadyIcon;
+    [SerializeField]
+    private GameObject isReadyIcon;
+    [SerializeField]
+    private GameObject configureButton;
+
     public NetworkVariable<FixedString64Bytes> characterName = new();
     public NetworkVariable<FixedString64Bytes> playerName = new();
     public NetworkVariable<bool> isBot = new();
     public NetworkVariable<int> index = new();
     public NetworkVariable<bool> isReady = new();
     public NetworkVariable<bool> isTaken = new(false);
+
+    private AnimatorOverrideController animatorOverrideController;
 
     public override void OnNetworkSpawn() {
         transform.SetParent(GameObject.Find("PlayerRoomDisplays").transform, false);
@@ -31,10 +43,6 @@ public class RoomPlayerUI : NetworkBehaviour {
         animatorOverrideController = new AnimatorOverrideController(characterDisplay.GetComponent<Animator>().runtimeAnimatorController);
         animatorOverrideController["UI_static"] = Resources.Load<AnimationClip>("UI_none");
         characterDisplay.GetComponent<Animator>().runtimeAnimatorController = animatorOverrideController;
-        OnIsBotChanged(false, isBot.Value);
-        OnCharacterNameChanged("", characterName.Value);
-        OnPlayerNameChanged("", playerName.Value);
-        OnIsReadyChanged(false, isReady.Value);
         OnIsTakenChanged(false, isTaken.Value);
     }
 
@@ -42,7 +50,17 @@ public class RoomPlayerUI : NetworkBehaviour {
     public void RemoveBotServerRpc() {
         Player player = Player.players[index.Value];
         player.Remove();
-        GameObject.Find("RoomUI").GetComponent<CharacterSelection>().RemovePlayer(player);
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void RequestCanConfigureServerRpc(ulong clientId) {
+        bool canConfigure = Client.clients[clientId].playerIds.Contains(index.Value) || Player.players.TryGetValue(index.Value, out Player player) && player.IsNPC;
+        ResponseCanConfigureClientRpc(canConfigure, Util.GetClientRpcParamsFor(clientId));
+    }
+
+    [ClientRpc]
+    private void ResponseCanConfigureClientRpc(bool canConfigure, ClientRpcParams clientRpcParams = default) {
+        configureButton.SetActive(canConfigure);
     }
 
     private void SyncCharacterName() {
@@ -89,12 +107,17 @@ public class RoomPlayerUI : NetworkBehaviour {
     }
 
     private void SyncIsReady() {
-        if (Static.singlePlayer || !isTaken.Value) {
+        if (Static.local || !isTaken.Value) {
             isReadyIcon.SetActive(false);
             isNotReadyIcon.SetActive(false);
         } else {
-            isReadyIcon.SetActive(isReady.Value);
-            isNotReadyIcon.SetActive(!isReady.Value);
+            if (isBot.Value) {
+                isReadyIcon.SetActive(true);
+                isNotReadyIcon.SetActive(false);
+            } else {
+                isReadyIcon.SetActive(isReady.Value);
+                isNotReadyIcon.SetActive(!isReady.Value);
+            }
         }
     }
 
@@ -107,5 +130,12 @@ public class RoomPlayerUI : NetworkBehaviour {
         SyncIsBot();
         SyncIsReady();
         SyncPlayerName();
+        if (IsClient) {
+            RequestCanConfigureServerRpc(NetworkManager.Singleton.LocalClientId);
+        }
+    }
+
+    public void Configure() {
+        GameObject.Find("RoomUI").GetComponent<CharacterSelection>().RequestSelectionOptionsServerRpc(NetworkManager.Singleton.LocalClientId, index.Value);
     }
 }

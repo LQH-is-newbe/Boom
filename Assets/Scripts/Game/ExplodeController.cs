@@ -5,8 +5,6 @@ using Unity.Netcode;
 using Unity.Collections;
 
 public class ExplodeController : NetworkBehaviour {
-    private const float fadeAwayTime = 0.1f;
-
     public NetworkVariable<FixedString64Bytes> spritePath = new();
     public NetworkVariable<float> rotateAngle = new();
     public GameObject explodePrefab;
@@ -29,11 +27,12 @@ public class ExplodeController : NetworkBehaviour {
         if (IsServer) {
             extendTimer = gameObject.AddComponent<Timer>();
             extendTimer.Init(Explode.extendTime, () => { explode.Extend(); });
-            gameObject.AddComponent<Timer>().Init(explode.ExistTime - fadeAwayTime, () => { FadeAwayClientRpc(); });
+            gameObject.AddComponent<Timer>().Init(explode.ExistTime + Explode.fadeAwayTime, () => { Destroy(gameObject); });
             destroyTimer = gameObject.AddComponent<Timer>();
             destroyTimer.Init(explode.ExistTime, () => {
+                FadeAwayClientRpc();
+                Destroy(GetComponent<BoxCollider2D>());
                 explode.Destroy();
-                Destroy(gameObject);
             });
             string path = "Explode/Sprites/";
             if (explode.Direction == Direction.zero) {
@@ -61,6 +60,6 @@ public class ExplodeController : NetworkBehaviour {
     [ClientRpc]
     private void FadeAwayClientRpc() {
         AlphaGradient fadeAway = gameObject.AddComponent<AlphaGradient>();
-        fadeAway.Init(true, display.GetComponent<SpriteRenderer>(), fadeAwayTime);
+        fadeAway.Init(true, display, Explode.fadeAwayTime);
     }
 }

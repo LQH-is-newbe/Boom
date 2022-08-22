@@ -54,4 +54,12 @@ public class MapSelection : NetworkBehaviour{
             }
         }
     }
+
+    public void Previous() {
+        ChangeMapServerRpc(false);
+    }
+    
+    public void Next() {
+        ChangeMapServerRpc(true);
+    }
 }

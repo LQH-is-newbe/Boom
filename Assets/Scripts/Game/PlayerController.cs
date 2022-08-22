@@ -4,17 +4,36 @@ using UnityEngine;
 using Unity.Netcode;
 
 public class PlayerController : MonoBehaviour {
-    private const KeyCode 
-        leftKey = KeyCode.LeftArrow,
-        rightKey = KeyCode.RightArrow,
-        upKey = KeyCode.UpArrow,
-        downKey = KeyCode.DownArrow,
-        putBombKey = KeyCode.Space;
+    private KeyCode leftKey, rightKey, upKey, downKey, putBombKey;
     private List<KeyCode> pressingDirKeys = new List<KeyCode>();
     private CharacterController character;
 
     private void Awake() {
         character = GetComponent<CharacterController>();
+    }
+
+    public void Init(int clientPlayerId) {
+        if (Static.playerNames.Count == 1) {
+            leftKey = KeyCode.LeftArrow;
+            rightKey = KeyCode.RightArrow;
+            upKey = KeyCode.UpArrow;
+            downKey = KeyCode.DownArrow;
+            putBombKey = KeyCode.Space;
+        } else {
+            if (clientPlayerId == 0) {
+                leftKey = KeyCode.A;
+                rightKey = KeyCode.D;
+                upKey = KeyCode.W;
+                downKey = KeyCode.S;
+                putBombKey = KeyCode.Space;
+            } else if (clientPlayerId == 1) {
+                leftKey = KeyCode.LeftArrow;
+                rightKey = KeyCode.RightArrow;
+                upKey = KeyCode.UpArrow;
+                downKey = KeyCode.DownArrow;
+                putBombKey = KeyCode.Keypad0;
+            }
+        }
     }
 
     private void Update() {
@@ -26,7 +45,7 @@ public class PlayerController : MonoBehaviour {
         if (Input.GetKeyUp(rightKey)) pressingDirKeys.Remove(rightKey);
         if (Input.GetKeyUp(upKey)) pressingDirKeys.Remove(upKey);
         if (Input.GetKeyUp(downKey)) pressingDirKeys.Remove(downKey);
-        if (Input.GetKeyDown(putBombKey)) character.PutBomb();
+        if (Input.GetKeyDown(putBombKey) && Static.networkVariables.gameRunning.Value && !Static.paused) character.PutBomb();
     }
 
     private void FixedUpdate() {

@@ -10,20 +10,9 @@ public class RoomUI : NetworkBehaviour {
         gameObject.name = "RoomUI";
     }
 
-    //[ServerRpc(RequireOwnership = false)]
-    //public void SetReadyServerRpc(ulong clientId, bool isReady) {
-    //    Player.clientPlayers[clientId].IsReady = isReady;
-    //    if (!isReady) return;
-    //    foreach (ulong id in Player.clientPlayers.Keys) {
-    //        if (!Player.clientPlayers[id].IsReady) return;
-    //    }
-    //    //TransitionClientRpc();
-    //    if (!Static.singlePlayer) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/start-game", Static.roomIdJson);
-    //    NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);
-    //}
-
-    //[ClientRpc]
-    //public void TransitionClientRpc() {
-    //    Util.StartTransition();
-    //}
+    public void Quit() {
+        NetworkManager.Singleton.Shutdown();
+        if (Static.local) SceneManager.LoadScene("Login");
+        else SceneManager.LoadScene("Lobby");
+    }
 }

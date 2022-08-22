@@ -11,15 +11,31 @@ using System.Text;
 using System;
 
 public class Lobby : MonoBehaviour {
-    public TMP_InputField roomMessage;
-    public GameObject lobbyRoomPrefab;
-    public GameObject lobbyRooms;
-    public GameObject createRoomWindow;
-    private bool creatingRoom = false;
+    [SerializeField]
+    private GameObject lobbyRoomPrefab;
+    [SerializeField]
+    private GameObject lobbyRooms;
+    [SerializeField]
+    private GameObject createRoomWindow;
+    [SerializeField]
+    private GameObject joinRoomWindow;
+    [SerializeField]
+    private GameObject p2Display;
+    [SerializeField]
+    private TextMeshProUGUI p1Name;
+    [SerializeField]
+    private TextMeshProUGUI p2Name;
+    [SerializeField]
+    private GameObject prompt;
+    [SerializeField]
+    private TextMeshProUGUI promptText;
 
     private void Awake() {
         Static.httpServerAddress = Static.serverPublicAddress;
-        if (Debug.isDebugBuild) Static.httpServerAddress = "127.0.0.1";
+        if (Static.debugMode) Static.httpServerAddress = "127.0.0.1";
+        p1Name.text = Static.playerNames[0];
+        if (Static.playerNames.Count < 2) p2Display.SetActive(false);
+        else p2Name.text = Static.playerNames[1];
         GetRooms();
     }
 
@@ -36,45 +52,27 @@ public class Lobby : MonoBehaviour {
         }
     }
 
-    public async void CreateRoom() {
-        if (creatingRoom) return;
-        Util.StartTransition();
-        CreateRoom body = new();
-        body.playerName = Static.playerName;
-        body.message = roomMessage.text;
-        var stringContent = new StringContent(JsonConvert.SerializeObject(body), Encoding.UTF8, "application/json");
-        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/create-room", stringContent);
-        var returnBody = JsonConvert.DeserializeObject<JoinRoomReturn>(await response.Content.ReadAsStringAsync());
-        NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(Static.httpServerAddress, returnBody.port);
-        ConnectionData connectionData = new();
-        connectionData.passcode = returnBody.passcode;
-        connectionData.playerName = Static.playerName;
-        NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(connectionData));
-        NetworkManager.Singleton.StartClient();
-    }
-
     public void CreateRoomWindow() {
-        createRoomWindow.SetActive(!createRoomWindow.activeInHierarchy);
+        createRoomWindow.SetActive(true);
     }
 
-    public void QuitGame() {
-        Application.Quit();
+    public void ReturnLogin() {
+        SceneManager.LoadScene("Login");
     }
-}
 
-public class JoinRoom {
-    public string playerName;
-    public int roomId;
-}
+    public void JoinRoomWindow(int roomId) {
+        joinRoomWindow.SetActive(true);
+        joinRoomWindow.GetComponent<JoinRoom>().roomId = roomId;
+    }
 
-public class JoinRoomReturn {
-    public ushort port;
-    public string passcode;
-}
+    public void OpenPrompt(string content) {
+        prompt.SetActive(true);
+        promptText.text = content;
+    }
 
-public class CreateRoom {
-    public string playerName;
-    public string message;
+    public void ClosePrompt() {
+        prompt.SetActive(false);
+    }
 }
 
 

@@ -53,13 +53,15 @@ public class Character {
     public float Speed { get { return speed; } set { speed = value; ((CharacterController)Static.controllers[this]).speed.Value = value; } }
     public int BombPower { get; set; }
     public int BombCapacity { get; set; }
-    public int health;
+    private int health;
     public int BombNum { get; set; }
     public bool IsInvincible { get; set; }
     public bool IsAlive { get; set; }
     public int Id { get; }
     public string CharacterName { get; }
     public bool IsNPC { get; }
+    public int ClientPlayerId { get; }
+    public string BombName { get; }
 
 
     public Character(Player player) {
@@ -74,6 +76,8 @@ public class Character {
         Id = player.Id;
         CharacterName = player.CharacterName;
         IsNPC = player.IsNPC;
+        ClientPlayerId = player.ClientPlayerId;
+        BombName = player.BombName;
     }
 
     public Character Copy() {
@@ -109,9 +113,6 @@ public class Character {
         int y = (int)Mathf.Floor(Position.y);
         Vector2Int mapBlock = new(x, y);
         if (Static.mapBlocks[mapBlock].element != null) {
-            //CharacterController controller = (CharacterController)Static.controllers[this];
-            //Debug.Log("double bomb at " + mapBlock + "with speed " + speed + "at pos (" + controller.transform.position.x + "," + controller.transform.position.y + ") fixedDeltaTime: " + Time.fixedDeltaTime);
-            //Time.timeScale = 0;
             return;
         }
         Bomb bomb = new(mapBlock, BombPower, Id);
@@ -134,6 +135,7 @@ public class Character {
             controller.Dead();
             GameObject.Find("GameStateController").GetComponent<GameStateController>().TestPlayerWins();
         } else if (amount < 0) {
+            //Time.timeScale = 0;
             controller.Hit();
             IsInvincible = true;
         }

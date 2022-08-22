@@ -5,16 +5,25 @@ using Unity.Netcode;
 using UnityEngine.SceneManagement;
 
 public class PauseMenu : MonoBehaviour {
+    [SerializeField]
+    private GameObject howToPlay;
+
     public void ResumeGame() {
         gameObject.SetActive(false);
+        if (Static.local) Util.PauseGame(false);
     }
 
     public void QuitGame() {
-        if (Static.singlePlayer) {
+        if (Static.local) {
+            Util.PauseGame(false);
             NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
         } else {
             NetworkManager.Singleton.Shutdown();
             SceneManager.LoadScene("Lobby");
         }
+    }
+
+    public void SwitchHowToPlay() {
+        howToPlay.SetActive(!howToPlay.activeSelf);
     }
 }

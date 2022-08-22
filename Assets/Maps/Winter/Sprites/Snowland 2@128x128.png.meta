@@ -834,7 +834,7 @@ TextureImporter:
   platformSettings:
   - serializedVersion: 3
     buildTarget: DefaultTexturePlatform
-    maxTextureSize: 2048
+    maxTextureSize: 1024
     resizeAlgorithm: 0
     textureFormat: -1
     textureCompression: 0
@@ -846,6 +846,18 @@ TextureImporter:
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 3
     buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 3
+    buildTarget: Server
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
@@ -6372,8 +6384,8 @@ TextureImporter:
       Snowland 2@128x128_32: -5845910903176171430
       Snowland 2@128x128_44: -7863982008828401957
       Snowland 2@128x128_250: 3244288436786266897
-      Snowland 2@128x128_185: 4181641191209488767
       Snowland 2@128x128_205: 4136304753342021293
+      Snowland 2@128x128_185: 4181641191209488767
       Snowland 2@128x128_102: -1360799050177214854
       Snowland 2@128x128_88: 4598525444023007165
       Snowland 2@128x128_42: -2761536211954016567

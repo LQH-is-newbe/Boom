@@ -42,12 +42,12 @@ public class Aircraft : NetworkBehaviour {
     [ClientRpc]
     private void AppearClientRpc() {
         AlphaGradient alphaGradient = gameObject.AddComponent<AlphaGradient>();
-        alphaGradient.Init(false, GetComponent<SpriteRenderer>(), 0.5f);
+        alphaGradient.Init(false, gameObject, 0.5f);
     }
 
     [ClientRpc]
     private void FadeAwayClientRpc() {
         AlphaGradient alphaGradient = gameObject.AddComponent<AlphaGradient>();
-        alphaGradient.Init(true, GetComponent<SpriteRenderer>(), 0.5f);
+        alphaGradient.Init(true, gameObject, 0.5f);
     }
 }

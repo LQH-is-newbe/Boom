@@ -18,6 +18,7 @@ public class GameStarter : MonoBehaviour {
     }
 
     private void ResetGameState() {
+        Static.hasObstacle.Clear();
         Character.characters.Clear();
         Static.mapBlocks.Clear();
         for (int x = 0; x < Static.mapSize; ++x) {
@@ -28,6 +29,7 @@ public class GameStarter : MonoBehaviour {
         Static.controllers.Clear();
         Static.collectables.Clear();
         Static.destroyables.Clear();
+        Static.notExplodedDestroyableNum = 0;
         Static.totalDestroyableNum = 0;
     }
 

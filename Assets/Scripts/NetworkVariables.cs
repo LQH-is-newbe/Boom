@@ -10,12 +10,9 @@ public class NetworkVariables : NetworkBehaviour {
         Static.networkVariables = this;
     }
 
-    //public void ChangeHasObstacle(int x, int y, bool value) {
-    //    Static.hasObstacle[new(x, y)] = value;
-    //}
-
-    //[ClientRpc]
-    //public void ChangeHasObstacleClientRpc(int x, int y, bool value) {
-    //    Static.hasObstacle[new(x, y)] = value;
-    //}
+    [ClientRpc]
+    public void ShowGameOverMessageClientRpc(string message) {
+        GameObject gameOverMessage = GameObject.Find("GameOverMessage");
+        gameOverMessage.GetComponent<GameOverMessage>().Init(message);
+    }
 }

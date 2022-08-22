@@ -5,12 +5,13 @@ using System.Threading.Tasks;
 using UnityEngine;
 
 public class AI {
-    private const float preventDis = 0.03f;
-    private const float enterErrorTime = 0.01f;
+    private const float allowedError = 0.06f;
+    public const float enterErrorTime = 0.1f;
+    private const float preventDis = 0.01f;
     private const float moveLagErrorTime = 0.02f;
     public const float decideTime = 0.1f;
 
-    private int playerId;
+    private readonly int playerId;
 
     public static Vector2Int MapPosToMapBlock(Vector2 mapPos) {
         int x = Mathf.FloorToInt(mapPos.x), y = Mathf.FloorToInt(mapPos.y);
@@ -95,13 +96,6 @@ public class AI {
                 if (i - 1 >= 0 && instructions[i - 1].putBomb) currentInstructions.Add(instructions[i - 1]);
             }
         }
-        //} else {
-        //    Instruction waitRemain = currentInstructions.Count > 0 ? 
-        //        new(currentInstructions[currentInstructions.Count - 1].pos, decideTime, waitTime: decideTime - currentInstructions[currentInstructions.Count - 1].time) :
-        //        new(node.pos, decideTime, waitTime: decideTime);
-        //    currentInstructions.Add(waitRemain);
-        //}
-        //Debug.Log(InstructionsToString(result));
     }
 
     private bool SearchWayOut(Vector2Int source, float initTime, AIPrediction prediction, bool ignoreExplode) {
@@ -115,17 +109,13 @@ public class AI {
             ignoreExplode,
             out _,
             isQuickSearch: true,
-            OnNodePop: (node) => { 
-                if (map[PosToMapBlock(node.pos)].IsSafe(node.time)) {
-                    found = true;
-                    return true;
+            OnNodePop: (node) => {
+                if (!map[PosToMapBlock(node.pos)].IsSafe(node.time)) {
+                    return false;
                 }
-                return false;
+                found = true;
+                return true;
             });
-        //if (!found) {
-        //    Debug.Log("no way out");
-        //    Time.timeScale = 0;
-        //}
         return found;
     }
 
@@ -146,7 +136,7 @@ public class AI {
         AIPredictionCharacter character = prediction.characters[playerId];
         int initIntervalIndex = map[PosToMapBlock(source)].GetIntervalIndex(initTime);
 
-        PriorityQueue<SearchNode, float> pq = new();
+        PriorityQueue<SearchNode> pq = new(allowedError);
         SearchNode init = new(source, initIntervalIndex, null, initTime, 0);
         pq.Add(init, Heuristic(init));
 
@@ -163,6 +153,7 @@ public class AI {
             Vector2Int curMapBlock = PosToMapBlock(cur.pos);
             AIPredictionMapBlock curAiMapBlock = map[curMapBlock];
 
+            //int[] randomOrderOfDirections = Random.RandomPermutation(4, 4);
             for (int i = 0; i < 4; ++i) {
                 Vector2Int nextPos = cur.pos + Direction.directions[i].Vector2Int;
                 Vector2Int nextMapBlock = PosToMapBlock(nextPos);
@@ -176,15 +167,12 @@ public class AI {
                 float transitionTime = PosMapManhattanDistance(cur.pos, nextPos) / character.speed;
 
                 // possible enter times, enter each interval as soon as possible (greedy)
-                List<float> timesToEnter = nextAiMapBlock.TimesToEnter(cur.time);
-                for (int j = 0; j < timesToEnter.Count; ++j) {
-                    float startTime = timesToEnter[j] + (j == 0 ? 0: enterErrorTime);
+                foreach (float startTime in nextAiMapBlock.TimesToEnter(cur.time)) {
                     float endTime = startTime + transitionTime;
                     int intervalIndex = nextAiMapBlock.GetIntervalIndex(endTime);
                     SearchNode fastestNode = fastestNodes.Get(nextPos, intervalIndex);
                     if (fastestNode != null && fastestNode.time <= endTime
                         || nextAiMapBlock.IsDestroyable(startTime)
-                        //|| !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime))
                         || !ignoreExplode && (nextAiMapBlock.ExplodeOverlap(startTime, endTime + moveLagErrorTime) || curAiMapBlock.ExplodeOverlap(cur.time, endTime + moveLagErrorTime))
                         || nextAiMapBlock.Bomb(startTime) != null && !nextMapBlock.Equals(curMapBlock)
                         ) continue;
@@ -211,6 +199,7 @@ public class AI {
         //Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
+        //Debug.Log("decision time taken: " + stopwatch.ElapsedMilliseconds);
         return Task.FromResult<Tuple<int, List<Instruction>, List<AIPredictionEvent>>>(new(decisionId, instructions, additionalEvents));
     }
 
@@ -227,11 +216,12 @@ public class AI {
         AIPrediction prediction = aiPredictionGenerator.Generate(playerId, additionalEvents, assumeCharacterPutBomb);
         Map<AIPredictionMapBlock> map = prediction.map;
         AIPredictionCharacter character = prediction.characters[playerId];
-        float destroyableExistRatioThreshold = 0.5f;
-        float destroyableExistRatio = Static.destroyables.Count / (float)Static.totalDestroyableNum;
         SearchNode targetNode = null;
         AIPredictionEvent newAdditionalEvent = null;
-        Func<SearchNode, bool> TestPutBomb = (node) => {
+        float highestScore = -99;
+        SearchTarget target = null;
+
+        bool TestPutBomb(SearchNode node) {
             Vector2Int mapBlock = PosToMapBlock(node.pos);
             if (character.bombNum.ValueAt(node.time) >= character.bombCapacity || map[mapBlock].Bomb(node.time) != null) return false;
             List<AIPredictionEvent> testAdditionalEvents = new(additionalEvents);
@@ -244,78 +234,104 @@ public class AI {
             } else {
                 return false;
             }
-        };
-        SearchTarget closestDestroyableNeighbor = new("closestDestroyableNeighbor",
-            (node) => {
-                Vector2Int curMapBlock = PosToMapBlock(node.pos);
-                for (int i = 0; i < 4; ++i) {
-                    Vector2Int nextMapBlock = PosToMapBlock(node.pos + Direction.directions[i].Vector2Int);
-                    if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
-                    if (map[nextMapBlock].IsDestroyable(node.time + Bomb.explodeTime + Explode.extendTime)) {
-                        if (TestPutBomb(node)) return true;
-                    }
-                }
-                return false;
-            },
+        }
+
+        SearchTarget closestCharacter = new("closestCharacter",
+            null,
             (time) => {
-                return Static.destroyables.Count > 0 && character.bombNum.ValueAt(time) < character.bombCapacity ?
-                    destroyableExistRatio / destroyableExistRatioThreshold - time : -100;
+                return 3 - 2 * time;
             },
             true,
             false
         );
-        SearchTarget closestCollectable = new("closestCollectable",
+
+        List<AIPredictionCharacter> otherCharacters = new();
+        foreach (int characterId in prediction.characters.Keys) {
+            if (characterId != playerId) otherCharacters.Add(prediction.characters[characterId]);
+        }
+        otherCharacters.Sort((a, b) => { return PosMapManhattanDistance(a.pos, character.pos).CompareTo(PosMapManhattanDistance(b.pos, character.pos)); });
+
+        int movesWithin = (character.bombPower - 1) * 2;
+        foreach (AIPredictionCharacter otherCharacter in otherCharacters) {
+            if (closestCharacter.Score((PosMapManhattanDistance(otherCharacter.pos, character.pos) - movesWithin / 2) / character.speed) < highestScore) continue;
+            bool OnNodePopCharacter(SearchNode node) {
+                if (otherCharacter.pos.Equals(node.pos) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
+                    int moveCount = 0;
+                    SearchNode cur = node;
+                    List<SearchNode> path = new();
+                    while (cur != null && moveCount < movesWithin) {
+                        ++moveCount;
+                        path.Add(cur);
+                        cur = cur.prev;
+                    }
+                    while (path.Count > 0) {
+                        SearchNode curNode = path[^1];
+                        path.RemoveAt(path.Count - 1);
+                        if (closestCharacter.Score(curNode.time) <= highestScore) break;
+                        if (character.bombNum.ValueAt(curNode.time) < character.bombCapacity && TestPutBomb(curNode)) {
+                            highestScore = closestCharacter.Score(curNode.time);
+                            target = closestCharacter;
+                            break;
+                        }
+                    }
+                    return true;
+                }
+                return false;
+            }
+            float Heauristic(SearchNode node) { return PosMapManhattanDistance(node.pos, otherCharacter.pos) / character.speed; }
+            Search(source, initTime, prediction, ignoreExplode, out _, OnNodePop: OnNodePopCharacter, Heuristic: Heauristic);
+        }
+
+        SearchTarget closestDestroyableNeighbor = new("closestDestroyableNeighbor",
+            (node) => {
+                if (character.bombNum.ValueAt(node.time) >= character.bombCapacity) return false;
+                Vector2Int curMapBlock = PosToMapBlock(node.pos);
+                for (int i = 0; i < 4; ++i) {
+                    Vector2Int nextMapBlock = curMapBlock + Direction.directions[i].Vector2Int;
+                    if (nextMapBlock.x < 0 || nextMapBlock.x >= Static.mapSize || nextMapBlock.y < 0 || nextMapBlock.y >= Static.mapSize) continue;
+                    if (map[nextMapBlock].IsNotExplodedDestroyable(node.time + Bomb.explodeTime + Explode.extendTime) && TestPutBomb(node)) return true;
+                }
+                return false;
+            },
+            (time) => {
+                return prediction.destroyableNum.ValueAt(time) > 0 ? 1 - time : -100;
+            },
+            true,
+            false
+        );
+        SearchTarget closestPossibleCollectable = new("closestPossibleCollectable",
             (node) => {
                 Vector2Int mapBlock = PosToMapBlock(node.pos);
-                AIPredictionMapBlock aIMapBlock = map[mapBlock];
-                if (map[PosToMapBlock(node.pos)].IsCollectable(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
+                AIPredictionMapBlock predictionMapBlock = map[mapBlock];
+                if (predictionMapBlock.IsAfterDestroyableDestroyed(node.time) && !predictionMapBlock.IsVisited(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
                     targetNode = node;
-                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CollectableDestroy, node.time, new Collectable(mapBlock, null));
+                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CharacterVisit, node.time);
                     return true;
                 }
                 return false;
             },
             (time) => {
-                return Static.collectables.Count > 0 ? 3 - time : -100;
+                bool willHavePossibleCollectable = !prediction.possibleCollectableNum.ValueBetweenTimeSatisfies((num) => { return num == 0; }, time);
+                return willHavePossibleCollectable ? 2f - time : -100;
             },
             false,
             false
         );
-        SearchTarget closestCharacter = new("closestCharacter",
+        SearchTarget closestCollectable = new("closestCollectable",
             (node) => {
                 Vector2Int mapBlock = PosToMapBlock(node.pos);
-                AIPredictionMapBlock aIMapBlock = map[mapBlock];
-                foreach (int characterId in prediction.characters.Keys) {
-                    if (characterId == playerId) continue;
-                    AIPredictionCharacter otherCharacter = prediction.characters[characterId];
-                    if (PosToMapBlock(otherCharacter.pos).Equals(mapBlock)) {
-                        int moveCount = 0;
-                        SearchNode cur = node;
-                        List<SearchNode> path = new();
-                        while (cur != null && moveCount < 8) {
-                            ++moveCount;
-                            path.Add(cur);
-                            cur = cur.prev;
-                        }
-                        while (path.Count > 0) {
-                            SearchNode curNode = path[^1];
-                            path.RemoveAt(path.Count - 1);
-                            if (TestPutBomb(curNode)) {
-                                return true;
-                            } else {
-                                //Debug.Log("put bomb character false");
-                                //Time.timeScale = 0;
-                            }
-                        }
-                    }
+                AIPredictionMapBlock predictionMapBlock = map[mapBlock];
+                if (predictionMapBlock.IsCollectable(node.time) && SearchWayOut(node.pos, node.time, prediction, ignoreExplode)) {
+                    targetNode = node;
+                    newAdditionalEvent = new(mapBlock, AIPredictionEvent.Type.CharacterVisit, node.time);
+                    return true;
                 }
                 return false;
-            }, 
-            (time) => {
-                //Debug.Log(character.bombNum.ValueAt(time));
-                return character.bombNum.ValueAt(time) < character.bombCapacity ? -50 + destroyableExistRatioThreshold / destroyableExistRatio - time : -100;
             },
-            true,
+            (time) => {
+                return prediction.collectableNum.ValueAt(time) > 0 ? 3 - time : -100;
+            },
+            false,
             false
         );
         SearchTarget closestSafe = new("closestSafe",
@@ -334,11 +350,9 @@ public class AI {
             false,
             true
         );
-        SearchTarget[] searchTargets = {closestDestroyableNeighbor, closestCollectable, closestCharacter, closestSafe};
+        SearchTarget[] searchTargets = {closestDestroyableNeighbor, closestCollectable, closestPossibleCollectable, closestSafe };
         int searchingTargets = searchTargets.Length;
-        float highestScore = -99;
-        SearchTarget target = null;
-        Func<SearchNode, bool> OnNodePop = (node) => {
+        bool OnNodePopOthers(SearchNode node) {
             foreach (SearchTarget searchTarget in searchTargets) {
                 if (!searchTarget.searching) continue;
                 float score = searchTarget.Score(node.time);
@@ -353,39 +367,36 @@ public class AI {
                 }
             }
             return searchingTargets == 0;
-        };
+        }
 
-        Search(source, initTime, prediction, ignoreExplode, out FastestNodes fastestNodes, OnNodePop: OnNodePop);
+        Search(source, initTime, prediction, ignoreExplode, out FastestNodes fastestNodes, OnNodePop: OnNodePopOthers);
         //Debug.Log(prediction.map);
         //Debug.Log(fastestNodes);
 
         if (targetNode == null) {
-            //instructions.Add(new(source, decideTime, waitTime: decideTime));
             if (assumeCharacterPutBomb) {
-                Debug.Log("disable character bomb");
+                //Debug.Log("disable character bomb");
                 DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, false, ignoreExplode);
             } else if (!ignoreExplode) {
-                Debug.Log("ignore explode");
+                //Debug.Log("ignore explode");
                 DecideInstructions(source, initTime, aiPredictionGenerator, instructions, additionalEvents, assumeCharacterPutBomb, true);
             } else {
-                Debug.Log("no way to go");
+                //Debug.Log("no way to go");
                 instructions.Add(new(source, decideTime, waitTime: decideTime));
             }
         } else {
+            //Debug.Log(targetNode.pos + " " + target.tag + " at " + targetNode.time);
             GetInstructions(targetNode, target.putBomb, instructions);
             float lastInstructionTime = instructions.Count > 0 ? instructions[^1].time : initTime;
             if (newAdditionalEvent != null && newAdditionalEvent.time <= lastInstructionTime) additionalEvents.Add(newAdditionalEvent);
-            //Debug.Log(InstructionsToString(instructions));
-            //Debug.Log(EventsToString(additionalEvents));
             if (instructions.Count == 0 || instructions[^1].time < decideTime) {
                 if (depth >= 8) {
-                    Time.timeScale = 0;
-                    Debug.Log("decide instruction too deep");
+                    //Debug.Log("decide instruction too deep");
                     return;
                 }
                 if (target.waitRemain) {
                     Instruction waitRemain = instructions.Count > 0 ?
-                        new(instructions[instructions.Count - 1].pos, decideTime, waitTime: decideTime - instructions[instructions.Count - 1].time) :
+                        new(instructions[^1].pos, decideTime, waitTime: decideTime - instructions[^1].time) :
                         new(source, decideTime, waitTime: decideTime);
                     instructions.Add(waitRemain);
                 } else {
@@ -429,8 +440,7 @@ public class SearchNode {
     }
 
     public override bool Equals(object obj) {
-        if (obj is SearchNode) {
-            SearchNode p = (SearchNode)obj;
+        if (obj is SearchNode p) {
             return pos.Equals(p.pos) && intervalIndex == p.intervalIndex;
         } else {
             return false;
@@ -448,7 +458,7 @@ public class SearchNode {
 
 public struct PosInterval {
     private Vector2Int pos;
-    private int intervalIndex;
+    private readonly int intervalIndex;
 
     public PosInterval(Vector2Int pos, int intervalIndex) {
         this.pos = pos;
@@ -460,8 +470,7 @@ public struct PosInterval {
     }
 
     public override bool Equals(object obj) {
-        if (obj is PosInterval) {
-            PosInterval p = (PosInterval)obj;
+        if (obj is PosInterval p) {
             return pos.Equals(p.pos) && intervalIndex == p.intervalIndex;
         } else {
             return false;
@@ -476,13 +485,13 @@ public abstract class FastestNodes {
 }
 
 public class MapArrayFastestNodes : FastestNodes {
-    private Map<SearchNode[]> fastestArriveTimes;
+    private readonly Map<SearchNode[]> fastestArriveTimes;
 
     public MapArrayFastestNodes(Map<AIPredictionMapBlock> aiMap) {
         fastestArriveTimes = new(Static.mapSize * 2);
         for (int x = 0; x < Static.mapSize * 2; x++) {
             for (int y = 0; y < Static.mapSize * 2; y++) {
-                Vector2Int curPos = new Vector2Int(x, y);
+                Vector2Int curPos = new(x, y);
                 fastestArriveTimes[curPos] = new SearchNode[aiMap[AI.PosToMapBlock(curPos)].IntervalCount()];
             }
         }
@@ -518,8 +527,8 @@ public class MapArrayFastestNodes : FastestNodes {
 }
 
 public class DictionaryFastestNodes : FastestNodes {
-    private Map<AIPredictionMapBlock> aiMap;
-    private Dictionary<PosInterval, SearchNode> fastestArriveTimes = new();
+    private readonly Map<AIPredictionMapBlock> aiMap;
+    private readonly Dictionary<PosInterval, SearchNode> fastestArriveTimes = new();
 
     public DictionaryFastestNodes(Map<AIPredictionMapBlock> aiMap) {
         this.aiMap = aiMap;
@@ -530,8 +539,7 @@ public class DictionaryFastestNodes : FastestNodes {
     }
 
     public override SearchNode Get(Vector2Int pos, int intervalIndex) {
-        SearchNode result;
-        if (fastestArriveTimes.TryGetValue(new(pos, intervalIndex), out result)) {
+        if (fastestArriveTimes.TryGetValue(new(pos, intervalIndex), out SearchNode result)) {
             return result;
         } else {
             return null;

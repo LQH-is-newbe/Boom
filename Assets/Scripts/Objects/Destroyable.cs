@@ -5,6 +5,7 @@ using UnityEngine;
 public class Destroyable: MapElement {
     public static readonly Sprite explodeSprite = Resources.Load<Sprite>("Destroyable/Sprite/Destroyed");
     private static readonly float dropRate = 0.5f;
+    public const float explodeTime = 0.5f;
 
     public static void AssignDrops() {
         Collectable.Type[] types = Collectable.RandomTypes(Static.totalDestroyableNum, dropRate);
@@ -24,15 +25,17 @@ public class Destroyable: MapElement {
         Static.mapBlocks[MapBlock].element = this;
         Static.destroyables.Add(this);
         Static.controllers[this] = controller;
+        Static.notExplodedDestroyableNum++;
         Static.totalDestroyableNum++;
     }
 
-    public void Destroy() {
+    public void Explode() {
         exploding = true;
+        Static.notExplodedDestroyableNum--;
         ((DestroyableController)Static.controllers[this]).DestroyBlock();
     }
 
-    public void RemoveBlock() {
+    public void Destroy() {
         Static.mapBlocks[MapBlock].element = null;
         Static.destroyables.Remove(this);
         Static.controllers.Remove(this);
@@ -41,4 +44,9 @@ public class Destroyable: MapElement {
             collectable.Create();
         }
     }
+
+    //public void DestroyPrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
+    //    AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
+    //    predictionMapBlock.DestroyDestroyable(time);
+    //}
 }

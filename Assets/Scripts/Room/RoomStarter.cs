@@ -17,11 +17,8 @@ public class RoomStarter : MonoBehaviour {
     }
 
     private void ResetRoomState() {
-        foreach (Player player in Player.players.Values) {
-            if (!player.IsNPC) {
-                player.CharacterName = null;
-                player.IsReady = false;
-            }
+        foreach (Client client in Client.clients.Values) {
+            client.IsReady = false;
         }
     }
 
