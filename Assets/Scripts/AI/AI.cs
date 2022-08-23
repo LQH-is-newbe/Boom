@@ -195,11 +195,11 @@ public class AI {
         List<Instruction> instructions = new();
         List<AIPredictionEvent> additionalEvents = new();
         DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
-        //Debug.Log("instructions: " + InstructionsToString(instructions));
+        Debug.Log("instructions: " + InstructionsToString(instructions));
         //Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
-        //Debug.Log("decision time taken: " + stopwatch.ElapsedMilliseconds);
+        Debug.Log("decision time taken: " + stopwatch.ElapsedMilliseconds);
         return Task.FromResult<Tuple<int, List<Instruction>, List<AIPredictionEvent>>>(new(decisionId, instructions, additionalEvents));
     }
 

@@ -3,17 +3,22 @@ import childProcess from 'child_process';
 import bodyParser from 'body-parser';
 import gameServerRepository from './entities/game-server.js';
 import roomRepository from './entities/room.js';
+import path from 'path';
 
-const PORT = 8080;
-const HOST = '0.0.0.0';
+adjustServers();
 
-const app = express();
-var jsonParser = bodyParser.json();
+const jsonParser = bodyParser.json();
+
+// public server calls
+
+const publicPort = 80;
+const publicHost = '0.0.0.0';
+const publicServer = express();
 
 let roomIdIterator = 0;
 const roomLocks = new Set();
 
-app.post('/create-room', jsonParser, async (req, res) => {
+publicServer.post('/create-room', jsonParser, async (req, res) => {
     const availableServer = await gameServerRepository.search().where('available').true().return.first();
     availableServer.available = false;
     await gameServerRepository.save(availableServer);
@@ -39,7 +44,7 @@ app.post('/create-room', jsonParser, async (req, res) => {
     res.end(JSON.stringify(resBody));
 });
 
-app.post('/join-room', jsonParser, async (req, res) => {
+publicServer.post('/join-room', jsonParser, async (req, res) => {
     const room = await roomRepository.search().where('id').equals(req.body.roomId).return.first();
     let forbiddenMessage = null;
     if (room === null) {
@@ -63,7 +68,7 @@ app.post('/join-room', jsonParser, async (req, res) => {
     res.end(JSON.stringify(resBody));
 });
 
-app.post('/get-rooms', jsonParser, async (req, res) => {
+publicServer.post('/get-rooms', jsonParser, async (req, res) => {
     const result = await roomRepository.search().return.all();
     const rooms = result.map((room) => {
         return {
@@ -77,9 +82,21 @@ app.post('/get-rooms', jsonParser, async (req, res) => {
     res.end(JSON.stringify(rooms));
 });
 
-// game server calls
+publicServer.get('/download', jsonParser, async (req, res) => {
+    const file = process.cwd() + '/Boom_setup.exe';
+    res.download(file);
+});
 
-app.post('/player-join', jsonParser, async (req, res) => {
+publicServer.listen(publicPort, publicHost);
+console.log(`Public server running on http://${publicHost}:${publicPort}`);
+
+// private server calls
+
+const privatePort = 8080;
+const privateHost = '0.0.0.0';
+const privateServer = express();
+
+privateServer.post('/player-join', jsonParser, async (req, res) => {
     await changeRoom(req.body.port, async (room) => {
         room.numPlayers++;
         await roomRepository.save(room);
@@ -87,7 +104,7 @@ app.post('/player-join', jsonParser, async (req, res) => {
     res.end();
 });
 
-app.post('/player-leave', jsonParser, async (req, res) => {
+privateServer.post('/player-leave', jsonParser, async (req, res) => {
     await changeRoom(req.body.port, async (room) => {
         room.numPlayers--;
         await roomRepository.save(room);
@@ -95,7 +112,7 @@ app.post('/player-leave', jsonParser, async (req, res) => {
     res.end();
 });
 
-app.post('/confirm-room', jsonParser, async (req, res) => {
+privateServer.post('/confirm-room', jsonParser, async (req, res) => {
     const port = req.body.port;
     const room = await roomRepository.search().where('port').equals(port).return.first();
     if (room == null || room.passcode !== req.body.passcode) {
@@ -106,7 +123,7 @@ app.post('/confirm-room', jsonParser, async (req, res) => {
     res.end();
 });
 
-app.post('/close-room', jsonParser, async (req, res) => {
+privateServer.post('/close-room', jsonParser, async (req, res) => {
     const port = req.body.port;
 
     await changeRoom(port, async (room) => {
@@ -121,7 +138,7 @@ app.post('/close-room', jsonParser, async (req, res) => {
     res.end();
 });
 
-app.post('/start-game', jsonParser, async (req, res) => {
+privateServer.post('/start-game', jsonParser, async (req, res) => {
     await changeRoom(req.body.port, async (room) => {
         room.started = true;
         await roomRepository.save(room);
@@ -129,7 +146,7 @@ app.post('/start-game', jsonParser, async (req, res) => {
     res.end();
 });
 
-app.post('/end-game', jsonParser, async (req, res) => {
+privateServer.post('/end-game', jsonParser, async (req, res) => {
     await changeRoom(req.body.port, async (room) => {
         room.started = false;
         await roomRepository.save(room);
@@ -137,17 +154,8 @@ app.post('/end-game', jsonParser, async (req, res) => {
     res.end();
 });
 
-// test endpoints
-
-app.post('/rooms', jsonParser, async (req, res) => {
-    const result = await roomRepository.search().return.all();
-    res.end(JSON.stringify(result));
-});
-
-app.post('/game-servers', jsonParser, async (req, res) => {
-    const gameServers = await gameServerRepository.search().return.all();
-    res.end(JSON.stringify(gameServers));
-});
+privateServer.listen(privatePort, privateHost);
+console.log(`Private server running on http://${privateHost}:${privatePort}`);
 
 // util functions
 
@@ -202,12 +210,7 @@ function makeid(length) {
     var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     var charactersLength = characters.length;
     for ( var i = 0; i < length; i++ ) {
-      result += characters.charAt(Math.floor(Math.random() * 
- charactersLength));
+      result += characters.charAt(Math.floor(Math.random() * charactersLength));
    }
    return result;
 }
-
-app.listen(PORT, HOST);
-adjustServers();
-console.log(`Running on http://${HOST}:${PORT}`);

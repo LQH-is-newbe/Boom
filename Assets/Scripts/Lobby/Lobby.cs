@@ -43,7 +43,7 @@ public class Lobby : MonoBehaviour {
         foreach (Transform child in lobbyRooms.transform) {
             Destroy(child.gameObject);
         }
-        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/get-rooms", new StringContent(""));
+        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + "/get-rooms", new StringContent(""));
         var returnBody = JsonConvert.DeserializeObject<List<Room>>(await response.Content.ReadAsStringAsync());
         foreach (var room in returnBody) {
             GameObject lobbyRoom = Instantiate(lobbyRoomPrefab);

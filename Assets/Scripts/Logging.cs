@@ -7,7 +7,7 @@ public class Logging : MonoBehaviour {
     private string filename;
 
     private void Awake() {
-        if (!Debug.isDebugBuild) Application.logMessageReceived += Log;
+        //if (!Debug.isDebugBuild) Application.logMessageReceived += Log;
         filename = Application.dataPath + "/Log.txt";
     }
 

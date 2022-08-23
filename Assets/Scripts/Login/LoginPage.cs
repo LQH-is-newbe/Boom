@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using Unity.Netcode;
+using Unity.Netcode.Transports.UNET;
 using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -105,6 +106,7 @@ public class LoginPage : MonoBehaviour {
             Static.local = true;
             Client client = new(0, Static.playerNames);
             NetworkManager.Singleton.ConnectionApprovalCallback = (request, response) => response.Approved = true;
+            NetworkManager.Singleton.GetComponent<UNetTransport>().ServerListenPort = 0;
             NetworkManager.Singleton.StartHost();
             NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
         } else {

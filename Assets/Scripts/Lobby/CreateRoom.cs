@@ -43,7 +43,7 @@ public class CreateRoom : MonoBehaviour {
         Util.StartTransition();
         var requestBody = new { message = roomMessage.text, hasPassword, password = passwordInput.GetComponent<TMP_InputField>().text };
         var stringContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/create-room", stringContent);
+        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + "/create-room", stringContent);
         var returnBody = JsonConvert.DeserializeObject<JoinRoomReturn>(await response.Content.ReadAsStringAsync());
 
         NetworkManager.Singleton.GetComponent<UnityTransport>().SetConnectionData(Static.httpServerAddress, returnBody.port);

@@ -47,9 +47,10 @@ public class BotController : MonoBehaviour {
         ai.Decide(++waitingDecisionId, finalInstruction.pos, new(finalInstruction.time, timeRemains, events)).ContinueWith(
             (result) => {
                 if (result.Result.Item1 != waitingDecisionId) {
-                    //Debug.Log("decision overdue");
+                    Debug.Log("decision overdue");
                     return;
                 }
+                Debug.Log("instructions received");
                 nextInstructions = result.Result.Item2;
                 nextEvents = result.Result.Item3;
             }
@@ -72,7 +73,7 @@ public class BotController : MonoBehaviour {
             }
             currentInstruction = currentInstructions[0];
             currentInstructions.RemoveAt(0);
-           // Debug.Log(currentInstruction);
+            Debug.Log(currentInstruction);
         }
         float timeLeft = 0;
         if (currentInstruction.waitTime > 0) {

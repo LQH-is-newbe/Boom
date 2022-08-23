@@ -31,7 +31,7 @@ public class Util {
     public static string JoinRoom(int roomId, string password = null) {
         var requestBody = new { roomId, password, numPlayers = Static.playerNames.Count };
         var stringContent = new StringContent(JsonConvert.SerializeObject(requestBody), Encoding.UTF8, "application/json");
-        var response = Sync(Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/join-room", stringContent));
+        var response = Sync(Static.client.PostAsync("http://" + Static.httpServerAddress + "/join-room", stringContent));
         string responseString = Sync(response.Content.ReadAsStringAsync());
         if (response.StatusCode == HttpStatusCode.Forbidden) {
             return responseString;
