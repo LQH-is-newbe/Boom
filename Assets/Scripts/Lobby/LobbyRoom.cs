@@ -1,12 +1,4 @@
-using Newtonsoft.Json;
-using System.Collections;
-using System.Collections.Generic;
-using System.Net.Http;
-using System.Text;
-using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 public class LobbyRoom : MonoBehaviour {
     [SerializeField]
@@ -45,10 +37,9 @@ public class LobbyRoom : MonoBehaviour {
         if (room.hasPassword) {
             lobby.JoinRoomWindow(room.roomId);
         } else {
-            string response = Util.JoinRoom(room.roomId);
-            if (response != "success") {
+            StartCoroutine(Util.JoinRoomCoroutine(room.roomId, null, (response) => {
                 lobby.OpenPrompt(response);
-            }
+            }));
         }
     }
 

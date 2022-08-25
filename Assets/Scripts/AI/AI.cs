@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -188,19 +187,20 @@ public class AI {
         //if (!isQuickSearch) Debug.Log("Nodes searched: " + nodes);
     }
 
-    public Task<Tuple<int, List<Instruction>, List<AIPredictionEvent>>> Decide(int decisionId, Vector2Int source, AIPredictionGenerator aiMapGenerator) {
+    public Task Decide(int decisionId, Vector2Int source, AIPredictionGenerator aiMapGenerator, Action<int, List<Instruction>, List<AIPredictionEvent>> callback) {
         System.Diagnostics.Stopwatch stopwatch = new();
         stopwatch.Start();
 
         List<Instruction> instructions = new();
         List<AIPredictionEvent> additionalEvents = new();
         DecideInstructions(source, 0, aiMapGenerator, instructions, additionalEvents, true, false);
-        Debug.Log("instructions: " + InstructionsToString(instructions));
+        //Debug.Log("instructions: " + InstructionsToString(instructions));
         //Debug.Log("additional events: " + EventsToString(additionalEvents));
 
         stopwatch.Stop();
-        Debug.Log("decision time taken: " + stopwatch.ElapsedMilliseconds);
-        return Task.FromResult<Tuple<int, List<Instruction>, List<AIPredictionEvent>>>(new(decisionId, instructions, additionalEvents));
+        //Debug.Log("decision time taken: " + stopwatch.ElapsedMilliseconds);
+        callback(decisionId, instructions, additionalEvents);
+        return Task.CompletedTask;
     }
 
     private void DecideInstructions(

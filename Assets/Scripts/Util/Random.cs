@@ -1,9 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
-
 public class Random {
-    private static System.Random rand = new System.Random();
+    private static readonly System.Random rand = new ();
     public static int RandomInt(int range) {
         return rand.Next(range);
     }

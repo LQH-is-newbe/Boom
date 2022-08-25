@@ -1,12 +1,7 @@
 using Newtonsoft.Json;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Text;
 using TMPro;
 using Unity.Netcode;
-using Unity.Netcode.Transports.UNET;
-using Unity.Netcode.Transports.UTP;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -30,8 +25,6 @@ public class LoginPage : MonoBehaviour {
         Static.playerNames.Clear();
         Player.players.Clear();
         Client.clients.Clear();
-        Application.targetFrameRate = Static.targetFrameRate;
-        Static.debugMode = Environment.GetEnvironmentVariable("BOOM_DEVELOPMENT") != null;
         if (Static.debugMode) testButton.SetActive(true);
     }
 
@@ -106,7 +99,7 @@ public class LoginPage : MonoBehaviour {
             Static.local = true;
             Client client = new(0, Static.playerNames);
             NetworkManager.Singleton.ConnectionApprovalCallback = (request, response) => response.Approved = true;
-            NetworkManager.Singleton.GetComponent<UNetTransport>().ServerListenPort = 0;
+            Util.SetNetworkTransport(false, "0.0.0.0", 7777);
             NetworkManager.Singleton.StartHost();
             NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
         } else {
@@ -119,8 +112,8 @@ public class LoginPage : MonoBehaviour {
         Static.playerNames.Add(duoPlayerName2.text);
         ConnectionData connectionData = new();
         connectionData.playerNames = Static.playerNames;
-        Debug.Log(JsonConvert.SerializeObject(connectionData));
         NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(connectionData));
+        Util.SetNetworkTransport(true, "127.0.0.1", 7777);
         NetworkManager.Singleton.StartClient();
     }
 }

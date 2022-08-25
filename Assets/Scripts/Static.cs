@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Net.Http;
-using UnityEngine;
 
 public class Static {
     // server
@@ -9,6 +8,7 @@ public class Static {
     public static readonly Dictionary<object, object> controllers = new();
     public static string passcode;
     public static ushort port;
+    public static object portBody;
     public static StringContent portStringContent;
     public static int mapIndex = 0;
     public static readonly List<Collectable> collectables = new();
@@ -24,6 +24,7 @@ public class Static {
     public static List<string> playerNames = new();
 
     // both
+    public static bool isServer;
     public static readonly HttpClient client = new HttpClient();
     public static string httpServerAddress;
     public static string[] maps = { "Halloween", "Winter" };

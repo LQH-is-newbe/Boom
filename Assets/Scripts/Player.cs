@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -42,11 +41,11 @@ public class Player {
     }
 
     public void Remove() {
+        players.Remove(Id);
+        Character.characters.Remove(Id);
         if (SceneManager.GetActiveScene().name == "Room") {
             GameObject.Find("RoomUI").GetComponent<CharacterSelection>().RemovePlayer(this);
         }
-        players.Remove(Id);
-        Character.characters.Remove(Id);
         if (!Static.debugMode && !Static.local) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/player-leave", Static.portStringContent);
     }
 }

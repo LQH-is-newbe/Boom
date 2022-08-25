@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class UIWalk : MonoBehaviour {
@@ -15,7 +13,7 @@ public class UIWalk : MonoBehaviour {
     }
 
     public void Init(string characterName) {
-        AnimatorOverrideController animatorOverrideController = new AnimatorOverrideController(GetComponent<Animator>().runtimeAnimatorController);
+        AnimatorOverrideController animatorOverrideController = new(GetComponent<Animator>().runtimeAnimatorController);
         animatorOverrideController["UI_walk"] = Resources.Load<AnimationClip>("Characters/" + characterName + "/Animations/UI_walk");
         GetComponent<Animator>().runtimeAnimatorController = animatorOverrideController;
     }

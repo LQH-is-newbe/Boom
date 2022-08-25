@@ -1,0 +1,3 @@
+JSWebSocketClient.jslib https://github.com/Unity-Technologies/multiplayer-community-contributions/pull/174/files
+WebSocketTransport.js Shutdown()
+WebSocketClientFactory new() Client on create

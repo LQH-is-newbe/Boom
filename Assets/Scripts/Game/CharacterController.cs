@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
 using Unity.Collections;
@@ -74,6 +72,8 @@ public class CharacterController : NetworkBehaviour {
             networkAnimator.SetAnimation("Moving", false);
             return;
         }
+        if (direction == Direction.left) networkAnimator.SetAnimation("Direction", -1f);
+        else if (direction == Direction.right) networkAnimator.SetAnimation("Direction", 1f);
         networkAnimator.SetAnimation("Moving", true);
         Vector2 curMapPos = transform.position;
         Vector2 newMapPos = curMapPos + direction.Vector2 * positionChangeDistance;
@@ -128,9 +128,9 @@ public class CharacterController : NetworkBehaviour {
         transform.position = decidedNewMapPos;
         if (IsServer) MoveServerCall(decidedNewMapPos.x, decidedNewMapPos.y);
         else MoveServerRpc(decidedNewMapPos.x, decidedNewMapPos.y);
-        if (positionChange.x < 0 || direction == Direction.left) {
+        if (positionChange.x < 0) {
             networkAnimator.SetAnimation("Direction", -1f);
-        } else if (positionChange.x > 0 || direction == Direction.right) {
+        } else if (positionChange.x > 0) {
             networkAnimator.SetAnimation("Direction", 1f);
         }
     }

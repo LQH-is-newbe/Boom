@@ -1,7 +1,5 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using Unity.Netcode;
 
 public class PlayerController : MonoBehaviour {
     private KeyCode leftKey, rightKey, upKey, downKey, putBombKey;

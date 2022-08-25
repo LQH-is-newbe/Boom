@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Direction {
@@ -22,5 +20,9 @@ public class Direction {
         this.vertical = vertical;
         this.Vector2Int = Vector2Int;
         this.Vector2 = Vector2;
+    }
+
+    public override string ToString() {
+        return index.ToString();
     }
 }

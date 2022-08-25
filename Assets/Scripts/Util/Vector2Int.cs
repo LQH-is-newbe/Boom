@@ -19,8 +19,7 @@ public struct Vector2Int {
     }
 
     public override bool Equals(object obj) {
-        if (obj is Vector2Int) {
-            Vector2Int p = (Vector2Int)obj;
+        if (obj is Vector2Int p) {
             return x == p.x && y == p.y;
         } else {
             return false;

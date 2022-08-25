@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Destroyable: MapElement {
@@ -44,9 +42,4 @@ public class Destroyable: MapElement {
             collectable.Create();
         }
     }
-
-    //public void DestroyPrediction(AIPrediction prediction, PriorityQueue<AIPredictionEvent, float> events, float time) {
-    //    AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
-    //    predictionMapBlock.DestroyDestroyable(time);
-    //}
 }

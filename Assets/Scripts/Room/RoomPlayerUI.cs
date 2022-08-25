@@ -1,10 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
 using Unity.Collections;
-using UnityEngine.EventSystems;
 
 public class RoomPlayerUI : NetworkBehaviour {
     [SerializeField]

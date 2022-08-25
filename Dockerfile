@@ -1,3 +1,3 @@
 FROM ubuntu
-EXPOSE 7777/udp
+EXPOSE 7777
 ENTRYPOINT ["/home/Boom.x86_64"]

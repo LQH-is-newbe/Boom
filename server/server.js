@@ -79,13 +79,20 @@ publicServer.post('/get-rooms', jsonParser, async (req, res) => {
             hasPassword: room.hasPassword,
         };
     });
-    res.end(JSON.stringify(rooms));
+    res.end(JSON.stringify({ rooms }));
 });
 
 publicServer.get('/download', jsonParser, async (req, res) => {
     const file = process.cwd() + '/Boom_setup.exe';
     res.download(file);
 });
+
+publicServer.get('/', jsonParser, async (req, res) => {
+    const file = process.cwd() + '/WebGLBuild/index.html';
+    res.sendFile(file);
+});
+
+publicServer.use(express.static('WebGLBuild'));
 
 publicServer.listen(publicPort, publicHost);
 console.log(`Public server running on http://${publicHost}:${publicPort}`);
@@ -116,8 +123,10 @@ privateServer.post('/confirm-room', jsonParser, async (req, res) => {
     const port = req.body.port;
     const room = await roomRepository.search().where('port').equals(port).return.first();
     if (room == null || room.passcode !== req.body.passcode) {
+        console.log("confirm denied");
         res.status(403);
     } else {
+        console.log("confirm accepted");
         res.status(200);
     }
     res.end();
@@ -194,7 +203,7 @@ async function launchServer() {
     gameServer.available = true;
     await gameServerRepository.save(gameServer);
 
-    const command = `docker run -d --name gameServer${port} -p ${port}:7777/udp -v "${process.env.GAME}":/home -e PORT=${port} --add-host=host.docker.internal:host-gateway game`;
+    const command = `docker run -d --name gameServer${port} -p ${port}:7777 -v "${process.env.GAME}":/home -e PORT=${port} --add-host=host.docker.internal:host-gateway game`;
     childProcess.exec(command);
 }
 

@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 public abstract class Table<T> where T: class {
     protected int id = -1;

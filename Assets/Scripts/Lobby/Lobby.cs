@@ -1,14 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using Unity.Netcode;
-using Unity.Netcode.Transports.UTP;
 using TMPro;
 using Newtonsoft.Json;
-using System.Net.Http;
-using System.Text;
-using System;
 
 public class Lobby : MonoBehaviour {
     [SerializeField]
@@ -39,17 +33,23 @@ public class Lobby : MonoBehaviour {
         GetRooms();
     }
 
-    public async void GetRooms() {
+    class RoomList {
+        public List<Room> rooms;
+    }
+
+    public void GetRooms() {
         foreach (Transform child in lobbyRooms.transform) {
             Destroy(child.gameObject);
         }
-        var response = await Static.client.PostAsync("http://" + Static.httpServerAddress + "/get-rooms", new StringContent(""));
-        var returnBody = JsonConvert.DeserializeObject<List<Room>>(await response.Content.ReadAsStringAsync());
-        foreach (var room in returnBody) {
-            GameObject lobbyRoom = Instantiate(lobbyRoomPrefab);
-            lobbyRoom.GetComponent<LobbyRoom>().Init(room);
-            lobbyRoom.transform.SetParent(lobbyRooms.transform, false);
-        }
+        StartCoroutine(Util.WebRequestCoroutine(Util.WebRequest("http://" + Static.httpServerAddress + "/get-rooms"), (statusCode, responseBody) => {
+            Debug.Log(responseBody);
+            List<Room> rooms = JsonConvert.DeserializeObject<RoomList>(responseBody).rooms;
+            foreach (var room in rooms) {
+                GameObject lobbyRoom = Instantiate(lobbyRoomPrefab);
+                lobbyRoom.GetComponent<LobbyRoom>().Init(room);
+                lobbyRoom.transform.SetParent(lobbyRooms.transform, false);
+            }
+        }));
     }
 
     public void CreateRoomWindow() {

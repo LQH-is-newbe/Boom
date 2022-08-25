@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using Unity.Collections;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
@@ -76,7 +74,7 @@ public class CharacterSelection : NetworkBehaviour {
         playerDisplay.isBot.Value = player.IsNPC;
         playerDisplay.playerName.Value = new(player.Name);
         playerDisplay.isTaken.Value = true;
-        playerDisplay.characterName.Value = new(player.CharacterName == null ? "" : player.CharacterName);
+        playerDisplay.characterName.Value = new(player.CharacterName ?? "");
         TestCanStart();
         TestCanAddBot();
     }
@@ -88,7 +86,6 @@ public class CharacterSelection : NetworkBehaviour {
     }
 
     private void StartGame() {
-        //TransitionClientRpc();
         if (!Static.local && !Static.debugMode) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/start-game", Static.portStringContent);
         ResetGameStateClientRpc();
         NetworkManager.Singleton.SceneManager.LoadScene("Game", LoadSceneMode.Single);

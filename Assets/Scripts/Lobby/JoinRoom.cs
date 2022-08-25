@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -26,13 +24,14 @@ public class JoinRoom : MonoBehaviour {
 
     public void Join() {
         if (!canJoin) return;
-        string response = Util.JoinRoom(roomId, password.text);
-        if (response == "Password incorrect") {
-            passwordIncorrectPrompt.SetActive(true);
-        } else if (response != "success") {
-            Close();
-            lobby.OpenPrompt(response);
-        }
+        StartCoroutine(Util.JoinRoomCoroutine(roomId, password.text, (response) => {
+            if (response == "Password incorrect") {
+                passwordIncorrectPrompt.SetActive(true);
+            } else {
+                Close();
+                lobby.OpenPrompt(response);
+            }
+        }));
     }
 
     public void TestCanJoin() {

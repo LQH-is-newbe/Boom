@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.Netcode;
 using UnityEngine;
@@ -85,7 +83,7 @@ public class Character {
     }
 
     public void Create(int index, Player player) {
-        GameObject characterAvatarHealth = UnityEngine.Object.Instantiate(characterAvatarHealthPrefab);
+        GameObject characterAvatarHealth = Object.Instantiate(characterAvatarHealthPrefab);
         CharacterAvatarHealth characterAvatarHealthController = characterAvatarHealth.GetComponent<CharacterAvatarHealth>();
         characterAvatarHealthController.characterName.Value = new(player.CharacterName);
         characterAvatarHealthController.playerName.Value = new(player.Name);
@@ -95,7 +93,7 @@ public class Character {
         else characterAvatarHealth.GetComponent<NetworkObject>().Spawn();
 
         Position = initialPositions[index];
-        GameObject character = UnityEngine.Object.Instantiate(characterPrefab, Position, Quaternion.identity);
+        GameObject character = Object.Instantiate(characterPrefab, Position, Quaternion.identity);
         CharacterController controller = character.GetComponent<CharacterController>();
         Static.controllers[this] = controller;
         controller.Init(this, characterAvatarHealthController);
@@ -135,7 +133,6 @@ public class Character {
             controller.Dead();
             GameObject.Find("GameStateController").GetComponent<GameStateController>().TestPlayerWins();
         } else if (amount < 0) {
-            //Time.timeScale = 0;
             controller.Hit();
             IsInvincible = true;
         }

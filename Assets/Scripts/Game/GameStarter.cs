@@ -1,13 +1,11 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Unity.Netcode;
-using Unity.Collections;
-using System;
 
 public class GameStarter : MonoBehaviour {
-    public GameObject uiPrefab;
-    public GameObject networkVariablesPrefab;
+    [SerializeField]
+    private GameObject uiPrefab;
+    [SerializeField]
+    private GameObject networkVariablesPrefab;
 
     private void Awake() {
         if (!NetworkManager.Singleton.IsServer) return;

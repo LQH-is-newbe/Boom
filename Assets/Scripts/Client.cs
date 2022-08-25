@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using UnityEngine;
 
 public class Client {
     public static readonly Dictionary<ulong, Client> clients = new();

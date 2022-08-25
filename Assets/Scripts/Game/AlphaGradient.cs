@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -18,8 +16,6 @@ public class AlphaGradient : MonoBehaviour {
         if (material != null) material.color = color;
         else if (text != null) {
             text.color = color;
-            //text.faceColor = color;
-            //text.outlineColor = color;
         } else if (image != null) {
             image.color = color;
         }

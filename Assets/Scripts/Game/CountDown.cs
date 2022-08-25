@@ -1,18 +1,18 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using Unity.Netcode;
 
-public class CountDown : MonoBehaviour {
+public class CountDown : NetworkBehaviour {
     [SerializeField]
     private TMPro.TextMeshProUGUI message;
 
     private Color color;
     private int nextCountDownNumber;
+    private int clientsConnected = 0;
 
-    private void Awake() {
-        color = message.color;
-        nextCountDownNumber = 3;
-        ChangeCountDownMessage();
+    public override void OnNetworkSpawn() {
+        if (IsClient) {
+            NotifyServerReadyServerRpc();
+        }
     }
 
     private void ChangeCountDownMessage() {
@@ -30,5 +30,21 @@ public class CountDown : MonoBehaviour {
             });
             gameObject.AddComponent<Timer>().Init(1.5f, () => { Destroy(gameObject); });
         }
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    private void NotifyServerReadyServerRpc() {
+        clientsConnected++;
+        if (clientsConnected == Client.clients.Count) {
+            StartCountDownClientRpc();
+            GameObject.Find("GameStateController").GetComponent<GameStateController>().StartGame();
+        }
+    }
+
+    [ClientRpc]
+    private void StartCountDownClientRpc() {
+        color = message.color;
+        nextCountDownNumber = 3;
+        ChangeCountDownMessage();
     }
 }
