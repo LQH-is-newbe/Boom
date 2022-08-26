@@ -12,15 +12,18 @@ public class Entrypoint : MonoBehaviour {
     private bool isServer;
     [SerializeField]
     private bool debugMode;
+    [SerializeField]
+    private GameObject audioPrefab;
 
     private void Start() {
-        Static.isServer = isServer;
         Static.debugMode = debugMode;
         Application.targetFrameRate = Static.targetFrameRate;
         if (!isServer) {
+            Audio audio = Instantiate(audioPrefab).GetComponent<Audio>();
+            Static.audio = audio;
+            audio.ChangeBackgroundMusic("Lobby");
             SceneManager.LoadScene("Login");
         } else {
-            Debug.Log("server branch");
             Debug.Log(NetworkManager.Singleton);
             NetworkManager.Singleton.ConnectionApprovalCallback = ConnectionApprovalCallback;
             NetworkManager.Singleton.OnClientDisconnectCallback += OnClientDisconnectCallback;
@@ -71,6 +74,7 @@ public class Entrypoint : MonoBehaviour {
             if (!Static.debugMode) Static.client.PostAsync("http://" + Static.httpServerAddress + ":8080/close-room", Static.portStringContent);
             Player.players.Clear();
             Client.clients.Clear();
+            Static.mapIndex = 0;
             NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);
             return;
         }

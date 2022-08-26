@@ -36,10 +36,11 @@ public class GameStarter : MonoBehaviour {
         GameObject map = Instantiate(mapPrefab, Vector2.zero, Quaternion.identity);
         map.GetComponent<NetworkObject>().Spawn(true);
 
-
         Destroyable.AssignDrops();
+        Collectable.Type.DetermineSpritePaths();
 
         GameObject ui = Instantiate(uiPrefab);
+        GameObject.Find("CountDown").GetComponent<CountDown>().mapName.Value = new(Static.maps[Static.mapIndex]);
         ui.GetComponent<NetworkObject>().Spawn(true);
 
         GameObject networkVariables = Instantiate(networkVariablesPrefab);

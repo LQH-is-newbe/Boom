@@ -312,3 +312,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   isServer: 0
   debugMode: 0
+  audioPrefab: {fileID: 7392197250235575161, guid: 01018d38284b6e24fbfe6348a7b6b2f3, type: 3}

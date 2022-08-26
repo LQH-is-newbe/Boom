@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 2315327242708231041}
   - component: {fileID: 2431944732576692542}
   - component: {fileID: 1591301293486640898}
+  - component: {fileID: 1338267568624323911}
   m_Layer: 5
   m_Name: BombSelectionUnit
   m_TagString: Untagged
@@ -35,7 +36,7 @@ RectTransform:
   m_Children:
   - {fileID: 8320440077522876760}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -121,6 +122,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 6495835750418692354}
   image: {fileID: 1632932286382037687}
+--- !u!114 &1338267568624323911
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3861203297760337358}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 683a8268af3e78644b5e98f05bc4f0db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &5261062051732658264
 GameObject:
   m_ObjectHideFlags: 0

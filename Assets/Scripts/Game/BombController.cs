@@ -15,6 +15,9 @@ public class BombController : NetworkBehaviour {
     }
 
     public override void OnDestroy() {
+        if (IsClient) {
+            Static.audio.PlaySoundEffect("BombExplode");
+        }
         Static.hasObstacle[new((int)transform.position.x, (int)transform.position.y)] = false;
     }
 

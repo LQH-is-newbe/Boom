@@ -210,6 +210,7 @@ public class CharacterSelection : NetworkBehaviour {
     // Client RPC
     [ClientRpc]
     private void ResetGameStateClientRpc() {
+        Static.audio.StopBackgroundMusic();
         Static.hasObstacle.Clear();
     }
 

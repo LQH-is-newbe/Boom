@@ -16,7 +16,7 @@ public class Bomb: MapElement {
         Character creater = Character.characters[CreaterId];
         creater.BombNum++;
         Static.mapBlocks[MapBlock].element = this;
-        GameObject bomb = UnityEngine.Object.Instantiate(bombPrefab, new(MapBlock.x, MapBlock.y), Quaternion.identity);
+        GameObject bomb = Object.Instantiate(bombPrefab, new(MapBlock.x, MapBlock.y), Quaternion.identity);
         bomb.GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>("Bomb/Sprites/" + creater.BombName);
         BombController controller = bomb.GetComponent<BombController>();
         Static.controllers[this] = controller;

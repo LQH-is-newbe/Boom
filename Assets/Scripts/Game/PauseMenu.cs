@@ -12,6 +12,7 @@ public class PauseMenu : MonoBehaviour {
     }
 
     public void QuitGame() {
+        Static.audio.ChangeBackgroundMusic("Lobby");
         if (Static.local) {
             Util.PauseGame(false);
             NetworkManager.Singleton.SceneManager.LoadScene("Room", LoadSceneMode.Single);

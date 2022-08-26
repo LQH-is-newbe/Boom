@@ -7,25 +7,44 @@ using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 public class LoginPage : MonoBehaviour {
-    public TMP_InputField soloPlayerName;
-    public TMP_InputField duoPlayerName1;
-    public TMP_InputField duoPlayerName2;
-    public GameObject localVsOnline;
-    public GameObject soloVsDuo;
-    public GameObject soloName;
-    public GameObject duoNames;
-    public GameObject howToPlay;
-    public GameObject testButton;
-    public Sprite activeButton;
-    public Sprite inActiveButton;
-    public Image soloStart;
-    public Image duoStart;
+    [SerializeField]
+    private TMP_InputField soloPlayerName;
+    [SerializeField]
+    private TMP_InputField duoPlayerName1;
+    [SerializeField]
+    private TMP_InputField duoPlayerName2;
+    [SerializeField]
+    private GameObject localVsOnline;
+    [SerializeField]
+    private GameObject soloVsDuo;
+    [SerializeField]
+    private GameObject soloName;
+    [SerializeField]
+    private GameObject duoNames;
+    [SerializeField]
+    private GameObject howToPlay;
+    [SerializeField]
+    private GameObject testButton;
+    [SerializeField]
+    private Sprite activeButton;
+    [SerializeField]
+    private Sprite inActiveButton;
+    [SerializeField]
+    private Image soloStart;
+    [SerializeField]
+    private Image duoStart;
+    [SerializeField]
+    private GameObject welcomeMessage;
 
     private void Awake() {
         Static.playerNames.Clear();
         Player.players.Clear();
         Client.clients.Clear();
         if (Static.debugMode) testButton.SetActive(true);
+        if (!Static.hasEnteredLoginPage) {
+            welcomeMessage.SetActive(true);
+            Static.hasEnteredLoginPage = true;
+        }
     }
 
     public void Local() {
@@ -115,5 +134,15 @@ public class LoginPage : MonoBehaviour {
         NetworkManager.Singleton.NetworkConfig.ConnectionData = Encoding.ASCII.GetBytes(JsonConvert.SerializeObject(connectionData));
         Util.SetNetworkTransport(true, "127.0.0.1", 7777);
         NetworkManager.Singleton.StartClient();
+    }
+
+    public void TurnOnSound() {
+        Static.audio.Mute = false;
+        welcomeMessage.SetActive(false);
+    }
+
+    public void TurnOffSound() {
+        Static.audio.Mute = true;
+        welcomeMessage.SetActive(false);
     }
 }

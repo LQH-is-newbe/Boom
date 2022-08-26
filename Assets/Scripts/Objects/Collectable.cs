@@ -39,6 +39,10 @@ public class Collectable: MapElement {
 
         private readonly bool isAttribute;
         private readonly System.Action<Character> apply;
+        public string SpritePath { get; private set; }
+        public float Prob { get; }
+        public string Name { get; }
+        
 
         private Type(string name, float prob, bool isAttribute, System.Action<Character> apply) {
             Name = name;
@@ -47,8 +51,6 @@ public class Collectable: MapElement {
             this.apply = apply;
         }
 
-        public float Prob { get; }
-        public string Name { get; }
         public void Apply(Character collecter) {
             if (isAttribute) {
                 if (collecter.collectables.ContainsKey(this)) {
@@ -57,7 +59,19 @@ public class Collectable: MapElement {
                     collecter.collectables[this] = 1;
                 }
             }
+            if (!collecter.IsNPC) Static.networkVariables.PlaySoundEffectClientRpc("Collect", Util.GetClientRpcParamsFor(collecter.ClientId));
             apply(collecter);
+        }
+
+        public static void DetermineSpritePaths() {
+            foreach (Type type in types) {
+                string mapSpecificSpritePath = "Collectable/Sprites/" + Static.maps[Static.mapIndex] + "/" + type.Name;
+                if (Resources.Load<Sprite>(mapSpecificSpritePath) != null) {
+                    type.SpritePath = mapSpecificSpritePath;
+                } else {
+                    type.SpritePath = "Collectable/Sprites/Default/" + type.Name;
+                }
+            }
         }
     }
 
@@ -124,7 +138,7 @@ public class Collectable: MapElement {
         GameObject collectable = Object.Instantiate(collectablePrefab, initMapBlock, Quaternion.identity);
         CollectableController controller = collectable.GetComponent<CollectableController>();
         Static.controllers[this] = controller;
-        controller.spritePath.Value = new FixedString64Bytes("Collectable/Sprites/" + type.Name);
+        controller.spritePath.Value = new FixedString64Bytes(type.SpritePath);
         controller.collectable = this;
         collectable.GetComponent<NetworkObject>().Spawn(true);
         if (hasSource) {

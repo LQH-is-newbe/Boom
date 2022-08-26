@@ -111,6 +111,7 @@ GameObject:
   - component: {fileID: 4633333866104577525}
   - component: {fileID: 6429341968621600516}
   - component: {fileID: 3654533705030185601}
+  - component: {fileID: 3119805438235922701}
   m_Layer: 5
   m_Name: CharacterSelectionUnit
   m_TagString: Untagged
@@ -133,7 +134,7 @@ RectTransform:
   - {fileID: 1376414917355838952}
   - {fileID: 5286615422045656857}
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: -1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
@@ -219,6 +220,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 3083247262247579475}
   characterNameDisplay: {fileID: 911919937115299339}
+--- !u!114 &3119805438235922701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1376414917963985866}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 683a8268af3e78644b5e98f05bc4f0db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2419642004712470978
 GameObject:
   m_ObjectHideFlags: 0

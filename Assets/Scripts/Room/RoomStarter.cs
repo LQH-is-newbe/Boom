@@ -16,7 +16,6 @@ public class RoomStarter : MonoBehaviour {
         foreach (Client client in Client.clients.Values) {
             client.IsReady = false;
         }
-        Static.mapIndex = 0;
     }
 
     private void InitObjects() {

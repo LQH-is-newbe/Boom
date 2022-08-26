@@ -31,6 +31,7 @@ public class DestroyableController : NetworkBehaviour {
 
     [ClientRpc]
     private void BlockExplodeClientRpc() {
+        Static.audio.PlaySoundEffect("DestroyableExplode");
         SpriteRenderer spriteRenderer = gameObject.AddComponent<SpriteRenderer>();
         spriteRenderer.sprite = Destroyable.explodeSprite;
         foreach (Transform child in transform) {

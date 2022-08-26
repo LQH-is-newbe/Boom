@@ -60,6 +60,7 @@ public class Character {
     public bool IsNPC { get; }
     public int ClientPlayerId { get; }
     public string BombName { get; }
+    public ulong ClientId { get; }
 
 
     public Character(Player player) {
@@ -76,6 +77,7 @@ public class Character {
         IsNPC = player.IsNPC;
         ClientPlayerId = player.ClientPlayerId;
         BombName = player.BombName;
+        ClientId = player.ClientId;
     }
 
     public Character Copy() {
@@ -113,28 +115,31 @@ public class Character {
         if (Static.mapBlocks[mapBlock].element != null) {
             return;
         }
+        if (!IsNPC) Static.networkVariables.PlaySoundEffectClientRpc("PutBomb", Util.GetClientRpcParamsFor(ClientId));
         Bomb bomb = new(mapBlock, BombPower, Id);
         bomb.Create();
     }
 
     public void ChangeHealth(int amount) {
-        if (!Static.networkVariables.gameRunning.Value) return;
+        if (!Static.networkVariables.gameRunning.Value || amount < 0 && IsInvincible) return;
         CharacterController controller = (CharacterController)Static.controllers[this];
-        if (amount < 0 && IsInvincible) return;
         health = Mathf.Clamp(health + amount, 0, maxHealth);
         controller.ChangeHealth(health);
-        if (health == 0) {
-            List<Collectable> deadDrops = Collectable.AssignRandomPosition(collectables);
-            foreach (Collectable collectable in deadDrops) {
-                collectable.Create(true, new(Position.x - 0.5f, Position.y - 0.5f));
-            }
-            IsAlive = false;
-            characters.Remove(Id);
-            controller.Dead();
-            GameObject.Find("GameStateController").GetComponent<GameStateController>().TestPlayerWins();
-        } else if (amount < 0) {
-            controller.Hit();
+        if (amount < 0) {
+            Static.networkVariables.PlaySoundEffectClientRpc("Hit", Util.GetClientRpcParamsFor(ClientId));
             IsInvincible = true;
+            if (health == 0) {
+                List<Collectable> deadDrops = Collectable.AssignRandomPosition(collectables);
+                foreach (Collectable collectable in deadDrops) {
+                    collectable.Create(true, new(Position.x - 0.5f, Position.y - 0.5f));
+                }
+                IsAlive = false;
+                characters.Remove(Id);
+                controller.Dead();
+                GameObject.Find("GameStateController").GetComponent<GameStateController>().TestPlayerWins();
+            } else {
+                controller.Hit();
+            }
         }
     }
 }

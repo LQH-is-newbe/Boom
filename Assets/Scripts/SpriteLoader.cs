@@ -6,6 +6,8 @@ public class SpriteLoader : NetworkBehaviour {
     public NetworkVariable<FixedString64Bytes> path = new();
 
     public override void OnNetworkSpawn() {
-        GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(path.Value.Value);
+        if (IsClient) {
+            GetComponent<SpriteRenderer>().sprite = Resources.Load<Sprite>(path.Value.Value);
+        }
     }
 }

@@ -1,7 +1,10 @@
 using UnityEngine;
 using Unity.Netcode;
+using Unity.Collections;
 
 public class CountDown : NetworkBehaviour {
+    public NetworkVariable<FixedString64Bytes> mapName = new();
+
     [SerializeField]
     private TMPro.TextMeshProUGUI message;
 
@@ -9,9 +12,9 @@ public class CountDown : NetworkBehaviour {
     private int nextCountDownNumber;
     private int clientsConnected = 0;
 
-    public override void OnNetworkSpawn() {
+    private void Start() {
         if (IsClient) {
-            NotifyServerReadyServerRpc();
+            gameObject.AddComponent<Timer>().Init(0.5f, () => { NotifyServerReadyServerRpc(); });
         }
     }
 
@@ -22,6 +25,7 @@ public class CountDown : NetworkBehaviour {
             gameObject.AddComponent<AlphaGradient>().Init(true, message.gameObject, 1);
             gameObject.AddComponent<Timer>().Init(1f, () => { ChangeCountDownMessage(); });
         } else {
+            Static.audio.ChangeBackgroundMusic(mapName.Value.Value);
             message.text = "GO!";
             message.color = color;
             gameObject.AddComponent<Timer>().Init(1f, () => {
@@ -45,6 +49,7 @@ public class CountDown : NetworkBehaviour {
     private void StartCountDownClientRpc() {
         color = message.color;
         nextCountDownNumber = 3;
+        Static.audio.PlaySoundEffect("CountDown");
         ChangeCountDownMessage();
     }
 }

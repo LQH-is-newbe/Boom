@@ -66,7 +66,6 @@ public class Util {
         var requestBody = new { roomId, password, numPlayers = Static.playerNames.Count };
         return WebRequestCoroutine(WebRequest("http://" + Static.httpServerAddress + "/join-room", requestBody), (statusCode, responseBody) => {
             if (statusCode == 200) {
-                StartTransition();
                 JoinRoomReturn joinRoomReturn = JsonConvert.DeserializeObject<JoinRoomReturn>(responseBody);
                 JoinRoom(joinRoomReturn);
             } else {

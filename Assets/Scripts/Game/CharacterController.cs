@@ -154,8 +154,11 @@ public class CharacterController : NetworkBehaviour {
     // put bomb
 
     public void PutBomb() {
-        if (IsServer) PutBombServerCall();
-        else PutBombServerRpc();
+        if (IsServer) {
+            PutBombServerCall();
+        } else {
+            PutBombServerRpc();
+        }
     }
 
     private void PutBombServerCall() {

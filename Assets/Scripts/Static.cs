@@ -8,7 +8,6 @@ public class Static {
     public static readonly Dictionary<object, object> controllers = new();
     public static string passcode;
     public static ushort port;
-    public static object portBody;
     public static StringContent portStringContent;
     public static int mapIndex = 0;
     public static readonly List<Collectable> collectables = new();
@@ -18,14 +17,15 @@ public class Static {
     public const int targetFrameRate = 200;
     public static readonly string[] bombNames = { "Classic", "Pumpkinhead" };
     public static bool paused = false;
+    public static readonly HttpClient client = new();
 
     // client
+    public static Audio audio;
     public const string serverPublicAddress = "3.15.187.113";
     public static List<string> playerNames = new();
+    public static bool hasEnteredLoginPage = false;
 
     // both
-    public static bool isServer;
-    public static readonly HttpClient client = new HttpClient();
     public static string httpServerAddress;
     public static string[] maps = { "Halloween", "Winter" };
     public static NetworkVariables networkVariables;
@@ -33,8 +33,4 @@ public class Static {
 
     public static bool local = false;
     public static bool debugMode = false;
-}
-
-public class RoomId {
-    public int roomId;
 }
