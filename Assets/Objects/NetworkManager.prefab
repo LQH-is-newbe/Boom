@@ -175,5 +175,5 @@ MonoBehaviour:
   ConnectAddress: 127.0.0.1
   Port: 7777
   SecureConnection: 0
-  AllowForwardedRequest: 0
+  AllowForwardedRequest: 1
   CertificateBase64String: 

@@ -1058,7 +1058,7 @@ PrefabInstance:
       objectReference: {fileID: 5485791813981269808}
     - target: {fileID: 4436173985198086816, guid: b5487d1f239190240b0127aefec8faf7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_MethodName
-      value: Join
+      value: Close
       objectReference: {fileID: 0}
     - target: {fileID: 4436173985198086816, guid: b5487d1f239190240b0127aefec8faf7, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
