@@ -1,6 +1,7 @@
 # Boom
 
-Bomberman-like Unity casual game.
+Bomberman-like Unity casual game.\
+Play now on http://3.15.187.113
 
 ### Menu
 
