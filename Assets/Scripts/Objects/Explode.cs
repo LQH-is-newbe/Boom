@@ -38,7 +38,7 @@ public class Explode {
         AIPredictionMapBlock predictionMapBlock = prediction.map[MapBlock];
         predictionMapBlock.AddExplodeStart(time);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + extendTime, this), time + extendTime);
-        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + ExistTime + AI.enterErrorTime, this), time + ExistTime + AI.enterErrorTime);
+        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + ExistTime + AIUtil.enterErrorTime, this), time + ExistTime + AIUtil.enterErrorTime);
     }
 
     public void Extend() {
@@ -70,7 +70,7 @@ public class Explode {
                 if (predictionMapBlock.IsNotExplodedDestroyable(time)) {
                     predictionMapBlock.ExplodeDestroyable(time);
                     prediction.destroyableNum.ChangeOnLastValue(time, (num) => { return num - 1; });
-                    events.Add(new(explode.MapBlock, AIPredictionEvent.Type.DestroyableDestroy, time + Destroyable.explodeTime + AI.enterErrorTime, new Destroyable(explode.MapBlock)), time + Destroyable.explodeTime + AI.enterErrorTime);
+                    events.Add(new(explode.MapBlock, AIPredictionEvent.Type.DestroyableDestroy, time + Destroyable.explodeTime + AIUtil.enterErrorTime, new Destroyable(explode.MapBlock)), time + Destroyable.explodeTime + AIUtil.enterErrorTime);
                 }
                 return;
             }

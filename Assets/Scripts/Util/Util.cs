@@ -13,6 +13,11 @@ using System.Collections.Generic;
 using Netcode.Transports.WebSocket;
 
 public class Util {
+    public static Vector2Int MapPosToMapBlock(Vector2 mapPos) {
+        int x = Mathf.FloorToInt(mapPos.x), y = Mathf.FloorToInt(mapPos.y);
+        return new(x, y);
+    }
+
     public static void SetNetworkTransport(bool useWebSocket, string address, ushort port) {
         if (useWebSocket) {
             NetworkManager.Singleton.GetComponent<UNetTransport>().enabled = false;

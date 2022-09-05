@@ -50,7 +50,7 @@ public class Bomb: MapElement {
         Explode explode = new Explode(MapBlock, BombPower, Direction.zero);
         predictionMapBlock.AddExplodeStart(time);
         events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeExtend, time + Explode.extendTime, explode), time + Explode.extendTime);
-        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + explode.ExistTime + AI.enterErrorTime, explode), time + explode.ExistTime + AI.enterErrorTime);
+        events.Add(new(MapBlock, AIPredictionEvent.Type.ExplodeDestroy, time + explode.ExistTime + AIUtil.enterErrorTime, explode), time + explode.ExistTime + AIUtil.enterErrorTime);
         predictionMapBlock.ChangeBomb(null, time);
     }
 }

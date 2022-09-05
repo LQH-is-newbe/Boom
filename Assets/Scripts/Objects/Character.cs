@@ -30,10 +30,10 @@ public class Character {
         new(0, -colliderHalfSize.y)
     };
     public static readonly Vector2[] initialPositions = {
-        AI.PosToMapPos(new Vector2Int(1, 26)),
-        AI.PosToMapPos(new Vector2Int(26, 26)),
-        AI.PosToMapPos(new Vector2Int(1, 1)),
-        AI.PosToMapPos(new Vector2Int(26, 1))};
+        AIUtil.PosToMapPos(new Vector2Int(1, 26)),
+        AIUtil.PosToMapPos(new Vector2Int(26, 26)),
+        AIUtil.PosToMapPos(new Vector2Int(1, 1)),
+        AIUtil.PosToMapPos(new Vector2Int(26, 1))};
     public static readonly Color32[] colors = {
         new(48, 172, 224, 255),
         new(92, 222, 114, 255),

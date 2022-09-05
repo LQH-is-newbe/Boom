@@ -82,8 +82,8 @@ public class CharacterController : NetworkBehaviour {
             Vector2 newVertexMapPos = newMapPos + vertexPos;
             if (newVertexMapPos.x < 0 || newVertexMapPos.x > Static.mapSize || newVertexMapPos.y < 0 || newVertexMapPos.y > Static.mapSize) return;
             Vector2 curVertexMapPos = curMapPos + vertexPos;
-            Vector2Int curVertexMapBlock = AI.MapPosToMapBlock(curVertexMapPos);
-            Vector2Int newVertexMapBlock = AI.MapPosToMapBlock(newVertexMapPos);
+            Vector2Int curVertexMapBlock = Util.MapPosToMapBlock(curVertexMapPos);
+            Vector2Int newVertexMapBlock = Util.MapPosToMapBlock(newVertexMapPos);
             if (!curVertexMapBlock.Equals(newVertexMapBlock) && Static.hasObstacle[newVertexMapBlock]) {
                 canGo = false;
             }
@@ -93,7 +93,7 @@ public class CharacterController : NetworkBehaviour {
             positionChange = direction.Vector2 * positionChangeDistance;
         } else {
             Vector2 newBoundaryMidPoint = newMapPos + Character.boundaryMidPoints[direction.index];
-            Vector2Int newMapBlock = AI.MapPosToMapBlock(newBoundaryMidPoint);
+            Vector2Int newMapBlock = Util.MapPosToMapBlock(newBoundaryMidPoint);
             Vector2Int newNeighborMapBlock;
             if (direction.horizontal) {
                 if (newBoundaryMidPoint.y > newMapBlock.y + 0.5f) newNeighborMapBlock = newMapBlock + Vector2Int.up;
@@ -119,7 +119,7 @@ public class CharacterController : NetworkBehaviour {
             if (shiftToMidPoint < blockedErrorStart) return;
             else if (shiftToMidPoint < blockedErrorEnd) distanceMultiplier = (shiftToMidPoint - blockedErrorStart) / (blockedErrorEnd - blockedErrorStart);
             else distanceMultiplier = 1;
-            Vector2Int curMapBlock = AI.MapPosToMapBlock(curMapPos);
+            Vector2Int curMapBlock = Util.MapPosToMapBlock(curMapPos);
             Vector2Int curNeighborMapBlock = direction.horizontal ? new(curMapBlock.x, newNeighborMapBlock.y) : new(newNeighborMapBlock.x, curMapBlock.y);
             if (Static.hasObstacle[curNeighborMapBlock]) return;
             positionChange = (emptyBlock - nonEmptyBlock) * positionChangeDistance * distanceMultiplier;

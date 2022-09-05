@@ -9,7 +9,7 @@ public class AIPredictionGenerator {
     private readonly int destroyableNumSnapshot;
     private readonly int collectableNumSnapshot;
 
-    public AIPredictionGenerator(float shiftTime, float envShiftTime, List<AIPredictionEvent> nextEvents = null) {
+    public AIPredictionGenerator(float shiftTime, float envShiftTime) {
         mapSnapshot = new(Static.mapSize);
         for (int x = 0; x < Static.mapSize; ++x) {
             for (int y = 0; y < Static.mapSize; ++y) {
@@ -36,7 +36,7 @@ public class AIPredictionGenerator {
                     if (explodeController.TimeToExtend > 0) {
                         events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeExtend, explodeController.TimeToExtend - shiftTime + envShiftTime, explodeSnapshot));
                     }
-                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy + AI.enterErrorTime - shiftTime + envShiftTime, explodeSnapshot));
+                    events.Add(new(explodeSnapshot.MapBlock, AIPredictionEvent.Type.ExplodeDestroy, explodeController.TimeToDestroy + AIUtil.enterErrorTime - shiftTime + envShiftTime, explodeSnapshot));
                 }
             }
         }
@@ -46,14 +46,6 @@ public class AIPredictionGenerator {
         charactersSnapshot = new();
         foreach (int id in Character.characters.Keys) {
             charactersSnapshot[id] = Character.characters[id].Copy();
-        }
-
-        // TODO: copy events?
-        if (nextEvents != null) {
-            foreach (AIPredictionEvent predictionEvent in nextEvents) {
-                predictionEvent.time -= shiftTime;
-                events.Add(predictionEvent);
-            }
         }
     }
 
@@ -96,7 +88,7 @@ public class AIPredictionGenerator {
             foreach (int characterId in prediction.characters.Keys) {
                 if (characterId == playerId) continue;
                 AIPredictionCharacter character = prediction.characters[characterId];
-                Vector2Int mapBlock = AI.PosToMapBlock(character.pos);
+                Vector2Int mapBlock = AIUtil.PosToMapBlock(character.pos);
                 pq.Add(new(mapBlock, AIPredictionEvent.Type.BombCreate, 0, new Bomb(mapBlock, character.bombPower, character.id)), 0);
             }
         }
